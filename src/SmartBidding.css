@@ -1,0 +1,79 @@
+.smart-bidding-summary {
+  margin: 16px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(74, 222, 128, 0.18);
+  border-radius: 13px;
+  background: rgba(20, 83, 45, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.smart-bidding-summary span {
+  display: block;
+  color: #86efac;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.smart-bidding-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.smart-bidding-count {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border-radius: 9px;
+  background: rgba(2, 6, 23, 0.45);
+  color: #f8fafc;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.control-team-card.bid-ineligible,
+.control-team-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  filter: saturate(0.5);
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+.control-team-card.bid-ineligible:hover,
+.control-team-card:disabled:hover {
+  transform: none;
+}
+
+.team-bid-status {
+  display: inline-flex !important;
+  width: fit-content;
+  margin-top: 5px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 0.62rem !important;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.team-bid-status.eligible {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.24);
+}
+
+.team-bid-status.ineligible {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.28);
+}
+
+@media (max-width: 760px) {
+  .smart-bidding-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,837 @@
+.owner-dashboard {
+  min-height: 100vh;
+
+  padding:
+    25px
+    35px
+    60px;
+
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      #213f74 0%,
+      #0e1b34 28%,
+      #060b16 64%,
+      #02040a 100%
+    );
+
+  color: white;
+
+  font-family:
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+/* ======================================
+   HEADER
+====================================== */
+
+.owner-header {
+  width: min(
+    1400px,
+    100%
+  );
+
+  margin: auto;
+
+  display: flex;
+
+  justify-content:
+    space-between;
+
+  align-items: center;
+
+  padding-bottom: 22px;
+
+  border-bottom:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+}
+
+.owner-kicker,
+.owner-team-name p,
+.owner-section-title p,
+.owner-live-heading p {
+  margin: 0;
+
+  color: #f7c948;
+
+  font-size: 9px;
+
+  font-weight: 900;
+
+  letter-spacing: 2.5px;
+}
+
+.owner-header h1 {
+  margin:
+    5px
+    0;
+
+  font-size:
+    clamp(
+      26px,
+      3vw,
+      40px
+    );
+}
+
+.owner-header > div > span {
+  color: #8491a6;
+}
+
+.owner-header-right {
+  display: flex;
+
+  align-items: center;
+
+  gap: 18px;
+}
+
+.owner-account-info {
+  text-align: right;
+}
+
+.owner-account-info strong {
+  display: block;
+
+  font-size: 12px;
+}
+
+.owner-account-info span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #718097;
+
+  font-size: 9px;
+}
+
+.owner-header-right button,
+.owner-loading button {
+  padding:
+    9px
+    14px;
+
+  border:
+    1px solid
+    #f7c948;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #f7c948;
+
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+/* ======================================
+   CONTENT
+====================================== */
+
+.owner-content {
+  width: min(
+    1400px,
+    100%
+  );
+
+  margin:
+    28px
+    auto
+    0;
+}
+
+/* ======================================
+   TEAM HERO
+====================================== */
+
+.owner-team-hero {
+  display: flex;
+
+  align-items: center;
+
+  gap: 25px;
+
+  padding: 28px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.1
+    );
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(
+        25,
+        39,
+        68,
+        0.95
+      ),
+      rgba(
+        7,
+        14,
+        28,
+        0.98
+      )
+    );
+}
+
+.owner-team-logo {
+  width: 90px;
+  height: 90px;
+
+  flex:
+    0
+    0
+    90px;
+
+  display: grid;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #f7c948,
+      #a36c09
+    );
+
+  color: #111827;
+
+  font-size: 20px;
+
+  font-weight: 900;
+}
+
+.owner-team-logo.has-logo {
+  background: #08101e;
+
+  border:
+    1px solid
+    rgba(
+      247,
+      201,
+      72,
+      0.3
+    );
+}
+
+.owner-team-logo img {
+  width: 100%;
+  height: 100%;
+
+  padding: 5px;
+
+  object-fit: contain;
+}
+
+.owner-team-name h2 {
+  margin:
+    5px
+    0;
+
+  font-size: 36px;
+}
+
+.owner-team-name span {
+  color: #8995a8;
+}
+
+.owner-purse {
+  margin-left: auto;
+
+  text-align: right;
+}
+
+.owner-purse span {
+  display: block;
+
+  color: #8995a8;
+
+  font-size: 9px;
+
+  letter-spacing: 2px;
+}
+
+.owner-purse strong {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #8be6a3;
+
+  font-size:
+    clamp(
+      30px,
+      4vw,
+      48px
+    );
+}
+
+/* ======================================
+   LIVE AUCTION
+====================================== */
+
+.owner-live-auction {
+  margin-top: 18px;
+
+  padding: 22px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.09
+    );
+
+  border-radius: 18px;
+
+  background:
+    rgba(
+      8,
+      15,
+      30,
+      0.93
+    );
+}
+
+.owner-live-heading {
+  display: flex;
+
+  justify-content:
+    space-between;
+
+  align-items: center;
+
+  margin-bottom: 15px;
+}
+
+.owner-live-heading h2 {
+  margin:
+    4px
+    0
+    0;
+}
+
+.owner-live-badge {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  color: #ff7474;
+
+  font-size: 9px;
+
+  font-weight: 900;
+}
+
+.owner-live-badge span {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #ef4444;
+
+  box-shadow:
+    0
+    0
+    8px
+    #ef4444;
+}
+
+.owner-current-player {
+  display: grid;
+
+  grid-template-columns:
+    auto
+    1fr
+    auto;
+
+  align-items: center;
+
+  gap: 18px;
+}
+
+.owner-current-photo {
+  width: 70px;
+  height: 70px;
+
+  display: grid;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background: #20324f;
+
+  color: #f7c948;
+
+  font-weight: 900;
+}
+
+.owner-current-photo img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.owner-current-info h3 {
+  margin:
+    0
+    0
+    4px;
+
+  font-size: 20px;
+}
+
+.owner-current-info span {
+  display: block;
+
+  color: #8995a8;
+
+  font-size: 11px;
+}
+
+.owner-current-info small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #f7c948;
+}
+
+.owner-current-bid {
+  text-align: right;
+}
+
+.owner-current-bid > span {
+  display: block;
+
+  color: #748299;
+
+  font-size: 8px;
+
+  letter-spacing: 1.5px;
+}
+
+.owner-current-bid > strong {
+  display: block;
+
+  margin-top: 4px;
+
+  color: #8be6a3;
+
+  font-size: 28px;
+}
+
+.owner-current-bid small {
+  color: #718097;
+
+  font-size: 9px;
+}
+
+.owner-leading {
+  margin-top: 5px;
+
+  padding:
+    5px
+    8px;
+
+  border:
+    1px solid
+    rgba(
+      139,
+      230,
+      163,
+      0.35
+    );
+
+  border-radius: 6px;
+
+  background:
+    rgba(
+      139,
+      230,
+      163,
+      0.07
+    );
+
+  color: #8be6a3;
+
+  font-size: 8px;
+
+  font-weight: 900;
+
+  letter-spacing: 1px;
+}
+
+/* ======================================
+   STATS
+====================================== */
+
+.owner-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      4,
+      1fr
+    );
+
+  gap: 15px;
+
+  margin:
+    20px
+    0;
+}
+
+.owner-stats > div {
+  padding: 20px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+
+  border-radius: 15px;
+
+  background: #101827;
+}
+
+.owner-stats span {
+  color: #7c899e;
+
+  font-size: 8px;
+
+  letter-spacing: 1.5px;
+}
+
+.owner-stats strong {
+  display: block;
+
+  margin-top: 7px;
+
+  font-size: 22px;
+}
+
+/* ======================================
+   SQUAD
+====================================== */
+
+.owner-squad {
+  padding: 28px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+
+  border-radius: 22px;
+
+  background: #080f1e;
+}
+
+.owner-section-title {
+  display: flex;
+
+  justify-content:
+    space-between;
+
+  align-items: center;
+
+  margin-bottom: 22px;
+}
+
+.owner-section-title h2 {
+  margin:
+    5px
+    0
+    0;
+}
+
+.owner-section-title > strong {
+  color: #8491a5;
+
+  font-size: 11px;
+}
+
+.owner-player-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      3,
+      1fr
+    );
+
+  gap: 14px;
+}
+
+.owner-player-card {
+  display: flex;
+
+  gap: 14px;
+
+  align-items: center;
+
+  padding: 16px;
+
+  border:
+    1px solid
+    #263248;
+
+  border-radius: 14px;
+
+  background: #121b2c;
+}
+
+.owner-player-photo {
+  width: 58px;
+  height: 58px;
+
+  flex:
+    0
+    0
+    58px;
+
+  display: grid;
+
+  place-items: center;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background: #20324f;
+
+  color: #f7c948;
+
+  font-weight: 900;
+}
+
+.owner-player-photo img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.owner-player-info {
+  min-width: 0;
+
+  flex: 1;
+}
+
+.owner-player-info h3 {
+  margin: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.owner-player-info > span {
+  color: #8995aa;
+
+  font-size: 10px;
+}
+
+.owner-player-prices {
+  display: flex;
+
+  gap: 18px;
+
+  margin-top: 8px;
+}
+
+.owner-player-prices small {
+  display: block;
+
+  color: #65738a;
+
+  font-size: 7px;
+
+  letter-spacing: 1px;
+}
+
+.owner-player-prices strong {
+  font-size: 11px;
+}
+
+.owner-purchase-price {
+  color: #8be6a3;
+}
+
+.owner-empty {
+  padding: 50px;
+
+  border:
+    1px dashed
+    #334155;
+
+  border-radius: 14px;
+
+  color: #778399;
+
+  text-align: center;
+}
+
+.owner-empty div {
+  margin-bottom: 10px;
+
+  font-size: 35px;
+}
+
+/* ======================================
+   LOADING
+====================================== */
+
+.owner-loading {
+  min-height: 100vh;
+
+  display: grid;
+
+  place-items: center;
+
+  padding: 30px;
+
+  background:
+    radial-gradient(
+      circle at top,
+      #172554,
+      #03050a
+    );
+
+  color: white;
+
+  text-align: center;
+
+  font-family:
+    Inter,
+    Arial,
+    sans-serif;
+}
+
+.owner-loading-icon {
+  font-size: 55px;
+}
+
+.owner-loading p {
+  color: #8491a5;
+}
+
+/* ======================================
+   RESPONSIVE
+====================================== */
+
+@media (
+  max-width: 900px
+) {
+  .owner-stats {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .owner-player-grid {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+}
+
+@media (
+  max-width: 650px
+) {
+  .owner-dashboard {
+    padding:
+      18px
+      15px
+      40px;
+  }
+
+  .owner-header,
+  .owner-team-hero {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .owner-header-right {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+  .owner-account-info {
+    text-align: left;
+  }
+
+  .owner-purse {
+    margin-left: 0;
+
+    text-align: left;
+  }
+
+  .owner-current-player {
+    grid-template-columns:
+      auto
+      1fr;
+  }
+
+  .owner-current-bid {
+    grid-column:
+      1 / -1;
+
+    text-align: left;
+  }
+
+  .owner-stats,
+  .owner-player-grid {
+    grid-template-columns:
+      1fr;
+  }
+}

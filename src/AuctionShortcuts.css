@@ -1,0 +1,27 @@
+.auction-shortcuts-bar {
+  margin: 16px 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.auction-shortcuts-bar span {
+  color: #f4c95d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.auction-shortcuts-bar strong {
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.72);
+  font-size: 0.72rem;
+  font-weight: 800;
+}

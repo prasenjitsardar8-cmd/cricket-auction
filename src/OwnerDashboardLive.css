@@ -1,0 +1,115 @@
+.owner-live-status-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.owner-auction-clock,
+.owner-call-status,
+.owner-bid-eligibility {
+  min-height: 118px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 15px;
+  background: rgba(2, 6, 23, 0.46);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.owner-auction-clock > span,
+.owner-call-status > span,
+.owner-bid-eligibility > span {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+}
+
+.owner-auction-clock strong {
+  margin-top: 3px;
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 1000;
+}
+
+.owner-auction-clock small {
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.owner-auction-clock.warning {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(113, 63, 18, 0.14);
+}
+
+.owner-auction-clock.critical {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(127, 29, 29, 0.2);
+  animation: ownerTimerPulse 0.8s infinite;
+}
+
+.owner-call-status strong {
+  margin-top: 8px;
+  color: #f4c95d;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+}
+
+.owner-bid-eligibility strong {
+  margin-top: 8px;
+  font-size: 1.05rem;
+}
+
+.owner-bid-eligibility small {
+  margin-top: 6px;
+  color: #94a3b8;
+}
+
+.owner-bid-eligibility.eligible {
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.owner-bid-eligibility.eligible strong {
+  color: #86efac;
+}
+
+.owner-bid-eligibility.leading {
+  border-color: rgba(244, 201, 93, 0.42);
+  background: rgba(120, 74, 13, 0.14);
+}
+
+.owner-bid-eligibility.leading strong {
+  color: #f7d66f;
+}
+
+.owner-bid-eligibility.blocked {
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(127, 29, 29, 0.14);
+}
+
+.owner-bid-eligibility.blocked strong {
+  color: #fca5a5;
+}
+
+@keyframes ownerTimerPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@media (max-width: 900px) {
+  .owner-live-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
