@@ -674,6 +674,56 @@ function OwnerDashboard({
 
       </header>
 
+      <div className="owner-mobile-quickbar">
+        <div>
+          <span>
+            PURSE
+          </span>
+
+          <strong>
+            ₹
+            {remaining.toFixed(
+              2
+            )}{" "}
+            Cr
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            CURRENT BID
+          </span>
+
+          <strong>
+            ₹
+            {currentBid.toFixed(
+              2
+            )}{" "}
+            Cr
+          </strong>
+        </div>
+
+        <div
+          className={
+            timerRemaining <=
+            5
+              ? "critical"
+              : timerRemaining <=
+                10
+              ? "warning"
+              : ""
+          }
+        >
+          <span>
+            TIMER
+          </span>
+
+          <strong>
+            {timerRemaining}s
+          </strong>
+        </div>
+      </div>
+
       <main className="owner-content">
 
         <section className="owner-team-hero">
