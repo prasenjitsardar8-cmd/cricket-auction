@@ -20,89 +20,53 @@ type LoginProps = {
 function Login({
   onLoggedIn,
 }: LoginProps) {
-  const [
-    email,
-    setEmail,
-  ] =
+  const [email, setEmail] =
     useState("");
 
-  const [
-    password,
-    setPassword,
-  ] =
+  const [password, setPassword] =
     useState("");
 
-  const [
-    loading,
-    setLoading,
-  ] =
+  const [loading, setLoading] =
     useState(false);
 
-  const [
-    errorMessage,
-    setErrorMessage,
-  ] =
+  const [errorMessage, setErrorMessage] =
     useState("");
 
   const portalLabel =
-    useMemo(
-      () => {
-        if (
-          supabasePortal ===
-          "admin"
-        ) {
-          return "ADMIN PORTAL";
-        }
+    useMemo(() => {
+      if (supabasePortal === "admin") {
+        return "ADMIN PORTAL";
+      }
 
-        if (
-          supabasePortal ===
-          "owner"
-        ) {
-          return "TEAM OWNER PORTAL";
-        }
+      if (supabasePortal === "owner") {
+        return "TEAM OWNER PORTAL";
+      }
 
-        return "AUCTION PORTAL";
-      },
-      []
-    );
+      return "AUCTION PORTAL";
+    }, []);
 
   const description =
-    supabasePortal ===
-    "admin"
+    supabasePortal === "admin"
       ? "Sign in with an authorized administrator account."
-      : supabasePortal ===
-        "owner"
+      : supabasePortal === "owner"
       ? "Sign in with the account assigned to your franchise."
       : "Sign in to continue to the Auction Administration or Team Owner portal.";
-
-  /* =====================================================
-     LOGIN
-  ===================================================== */
 
   const handleLogin =
     async () => {
       const cleanEmail =
         email.trim();
 
-      if (
-        !cleanEmail ||
-        !password
-      ) {
+      if (!cleanEmail || !password) {
         setErrorMessage(
           "Please enter your email and password."
         );
-
         return;
       }
 
       try {
-        setLoading(
-          true
-        );
-
-        setErrorMessage(
-          ""
-        );
+        setLoading(true);
+        setErrorMessage("");
 
         await signIn(
           cleanEmail,
@@ -110,23 +74,16 @@ function Login({
         );
 
         await onLoggedIn();
-      } catch (
-        error
-      ) {
-        console.error(
-          error
-        );
+      } catch (error) {
+        console.error(error);
 
         setErrorMessage(
-          error instanceof
-            Error
+          error instanceof Error
             ? error.message
             : "Unable to sign in."
         );
       } finally {
-        setLoading(
-          false
-        );
+        setLoading(false);
       }
     };
 
@@ -151,20 +108,11 @@ function Login({
 
         <div
           style={{
-            marginBottom:
-              "12px",
-
-            color:
-              "#f7c948",
-
-            fontSize:
-              "11px",
-
-            fontWeight:
-              900,
-
-            letterSpacing:
-              ".12em",
+            marginBottom: "12px",
+            color: "#f7c948",
+            fontSize: "11px",
+            fontWeight: 900,
+            letterSpacing: ".12em",
           }}
         >
           {portalLabel}
@@ -183,12 +131,8 @@ function Login({
             <input
               type="email"
               autoComplete="email"
-              value={
-                email
-              }
-              onChange={(
-                event
-              ) =>
+              value={email}
+              onChange={(event) =>
                 setEmail(
                   event.target.value
                 )
@@ -205,23 +149,14 @@ function Login({
             <input
               type="password"
               autoComplete="current-password"
-              value={
-                password
-              }
-              onChange={(
-                event
-              ) =>
+              value={password}
+              onChange={(event) =>
                 setPassword(
                   event.target.value
                 )
               }
-              onKeyDown={(
-                event
-              ) => {
-                if (
-                  event.key ===
-                  "Enter"
-                ) {
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
                   void handleLogin();
                 }
               }}
@@ -231,17 +166,13 @@ function Login({
 
           {errorMessage && (
             <div className="login-error">
-              {
-                errorMessage
-              }
+              {errorMessage}
             </div>
           )}
 
           <button
             className="login-button"
-            disabled={
-              loading
-            }
+            disabled={loading}
             onClick={() =>
               void handleLogin()
             }
@@ -254,17 +185,13 @@ function Login({
 
         <div className="login-divider">
           <span />
-
-          <p>
-            PUBLIC DISPLAY
-          </p>
-
+          <p>PUBLIC DISPLAY</p>
           <span />
         </div>
 
         <a
           className="public-display-link"
-          href="?mode=display"
+          href="/display"
           target="_blank"
           rel="noreferrer"
         >

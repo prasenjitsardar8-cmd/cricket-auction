@@ -12,86 +12,44 @@ import {
 import "./index.css";
 
 import App from "./App.tsx";
-
 import PublicDisplay from "./PublicDisplay.tsx";
-
 import Login from "./Login.tsx";
-
 import OwnerDashboard from "./OwnerDashboard.tsx";
 
 import {
   supabase,
-} from "./supabase.ts";
+  supabasePortal,
+} from "./supabase";
 
 import {
   getCurrentProfile,
   signOut,
   type UserProfile,
-} from "./auth.ts";
-
-type PortalMode =
-  | "admin"
-  | "owner"
-  | "display"
-  | null;
+} from "./auth";
 
 function RootApp() {
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
+  const mode =
+    supabasePortal;
 
-  const requestedMode =
-    params.get("mode");
-
-  const mode: PortalMode =
-    requestedMode ===
-      "admin" ||
-    requestedMode ===
-      "owner" ||
-    requestedMode ===
-      "display"
-      ? requestedMode
-      : null;
-
-  const [
-    profile,
-    setProfile,
-  ] =
+  const [profile, setProfile] =
     useState<UserProfile | null>(
       null
     );
 
-  const [
-    authLoading,
-    setAuthLoading,
-  ] =
+  const [authLoading, setAuthLoading] =
     useState(
-      mode !==
-        "display"
+      mode !== "display"
     );
 
-  const [
-    authError,
-    setAuthError,
-  ] =
+  const [authError, setAuthError] =
     useState("");
-
-  /* =====================================================
-     PROFILE LOADER
-  ===================================================== */
 
   const loadProfile =
     useCallback(
       async () => {
         try {
-          setAuthLoading(
-            true
-          );
-
-          setAuthError(
-            ""
-          );
+          setAuthLoading(true);
+          setAuthError("");
 
           const currentProfile =
             await getCurrentProfile();
@@ -99,85 +57,48 @@ function RootApp() {
           setProfile(
             currentProfile
           );
-        } catch (
-          error
-        ) {
-          console.error(
-            error
-          );
+        } catch (error) {
+          console.error(error);
 
-          setProfile(
-            null
-          );
+          setProfile(null);
 
           setAuthError(
-            error instanceof
-              Error
+            error instanceof Error
               ? error.message
               : "Unable to load account."
           );
         } finally {
-          setAuthLoading(
-            false
-          );
+          setAuthLoading(false);
         }
       },
       []
     );
 
-  /* =====================================================
-     AUTH INITIALIZATION
-  ===================================================== */
-
   useEffect(() => {
-    /*
-      Public projector/display mode deliberately
-      bypasses authentication.
-    */
-
-    if (
-      mode ===
-      "display"
-    ) {
+    if (mode === "display") {
       return;
     }
 
     void loadProfile();
 
-    const {
-      data,
-    } =
+    const { data } =
       supabase.auth.onAuthStateChange(
-        (
-          event,
-          session
-        ) => {
+        (event, session) => {
           if (
-            event ===
-            "SIGNED_OUT"
+            event === "SIGNED_OUT"
           ) {
-            setProfile(
-              null
-            );
-
-            setAuthLoading(
-              false
-            );
-
+            setProfile(null);
+            setAuthLoading(false);
             return;
           }
 
           if (
             session &&
             (
-              event ===
-                "SIGNED_IN" ||
-              event ===
-                "INITIAL_SESSION" ||
-              event ===
-                "USER_UPDATED" ||
-              event ===
-                "TOKEN_REFRESHED"
+              event === "SIGNED_IN" ||
+              event === "INITIAL_SESSION" ||
+              event === "USER_UPDATED" ||
+              event === "TOKEN_REFRESHED"
             )
           ) {
             window.setTimeout(
@@ -198,56 +119,31 @@ function RootApp() {
     loadProfile,
   ]);
 
-  /* =====================================================
-     PUBLIC DISPLAY
-  ===================================================== */
-
-  if (
-    mode ===
-    "display"
-  ) {
+  if (mode === "display") {
     return (
       <PublicDisplay />
     );
   }
 
-  /* =====================================================
-     AUTH LOADING
-  ===================================================== */
-
-  if (
-    authLoading
-  ) {
+  if (authLoading) {
     return (
       <div
         style={{
-          minHeight:
-            "100vh",
-
-          display:
-            "grid",
-
-          placeItems:
-            "center",
-
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
           background:
             "radial-gradient(circle at top, #172554, #03050a)",
-
-          color:
-            "white",
-
+          color: "white",
           fontFamily:
             "Inter, Arial, sans-serif",
-
-          textAlign:
-            "center",
+          textAlign: "center",
         }}
       >
         <div>
           <div
             style={{
-              fontSize:
-                "50px",
+              fontSize: "50px",
             }}
           >
             🏏
@@ -261,53 +157,28 @@ function RootApp() {
     );
   }
 
-  /* =====================================================
-     LOGIN
-  ===================================================== */
-
   if (!profile) {
     return (
       <>
         {authError && (
           <div
             style={{
-              position:
-                "fixed",
-
-              top:
-                "12px",
-
-              left:
-                "50%",
-
+              position: "fixed",
+              top: "12px",
+              left: "50%",
               transform:
                 "translateX(-50%)",
-
-              zIndex:
-                999,
-
-              padding:
-                "9px 14px",
-
+              zIndex: 999,
+              padding: "9px 14px",
               border:
                 "1px solid rgba(239,68,68,.35)",
-
-              borderRadius:
-                "8px",
-
-              background:
-                "#291016",
-
-              color:
-                "#ff8d8d",
-
-              fontSize:
-                "11px",
+              borderRadius: "8px",
+              background: "#291016",
+              color: "#ff8d8d",
+              fontSize: "11px",
             }}
           >
-            {
-              authError
-            }
+            {authError}
           </div>
         )}
 
@@ -320,21 +191,9 @@ function RootApp() {
     );
   }
 
-  /* =====================================================
-     EXPLICIT PORTAL ROLE GUARDS
-
-     ?mode=admin can only be opened by an admin.
-     ?mode=owner can only be opened by an owner.
-
-     This is a UI/route guard. Supabase RLS remains
-     the actual data-security layer.
-  ===================================================== */
-
   if (
-    mode ===
-      "admin" &&
-    profile.role !==
-      "admin"
+    mode === "admin" &&
+    profile.role !== "admin"
   ) {
     return (
       <AccessDenied
@@ -347,10 +206,8 @@ function RootApp() {
   }
 
   if (
-    mode ===
-      "owner" &&
-    profile.role !==
-      "owner"
+    mode === "owner" &&
+    profile.role !== "owner"
   ) {
     return (
       <AccessDenied
@@ -362,112 +219,61 @@ function RootApp() {
     );
   }
 
-  /* =====================================================
-     OWNER
-  ===================================================== */
-
   if (
-    profile.role ===
-    "owner"
+    profile.role === "owner"
   ) {
     return (
       <OwnerDashboard
-        profile={
-          profile
-        }
+        profile={profile}
       />
     );
   }
 
-  /* =====================================================
-     ADMIN
-  ===================================================== */
-
   if (
-    profile.role ===
-    "admin"
+    profile.role === "admin"
   ) {
     return (
       <div>
         <div
           style={{
-            position:
-              "fixed",
-
-            top:
-              "12px",
-
-            right:
-              "14px",
-
-            zIndex:
-              9999,
-
-            display:
-              "flex",
-
-            alignItems:
-              "center",
-
-            gap:
-              "10px",
+            position: "fixed",
+            top: "12px",
+            right: "14px",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
           }}
         >
           <div
             style={{
-              padding:
-                "7px 10px",
-
+              padding: "7px 10px",
               border:
                 "1px solid #27364f",
-
-              borderRadius:
-                "8px",
-
-              background:
-                "#08101e",
-
-              color:
-                "#8995aa",
-
-              fontSize:
-                "9px",
+              borderRadius: "8px",
+              background: "#08101e",
+              color: "#8995aa",
+              fontSize: "9px",
             }}
           >
             ADMIN •{" "}
-            {
-              profile.fullName
-            }
+            {profile.fullName}
           </div>
 
           <a
-            href="?mode=display"
+            href="/display"
             target="_blank"
             rel="noreferrer"
             style={{
-              padding:
-                "8px 11px",
-
+              padding: "8px 11px",
               border:
                 "1px solid #3b4b66",
-
-              borderRadius:
-                "8px",
-
-              background:
-                "#08101e",
-
-              color:
-                "#a6b4ca",
-
-              textDecoration:
-                "none",
-
-              fontSize:
-                "9px",
-
-              fontWeight:
-                900,
+              borderRadius: "8px",
+              background: "#08101e",
+              color: "#a6b4ca",
+              textDecoration: "none",
+              fontSize: "9px",
+              fontWeight: 900,
             }}
           >
             PROJECTOR
@@ -478,29 +284,15 @@ function RootApp() {
               void signOut()
             }
             style={{
-              padding:
-                "8px 11px",
-
+              padding: "8px 11px",
               border:
                 "1px solid #f7c948",
-
-              borderRadius:
-                "8px",
-
-              background:
-                "#08101e",
-
-              color:
-                "#f7c948",
-
-              cursor:
-                "pointer",
-
-              fontSize:
-                "9px",
-
-              fontWeight:
-                900,
+              borderRadius: "8px",
+              background: "#08101e",
+              color: "#f7c948",
+              cursor: "pointer",
+              fontSize: "9px",
+              fontWeight: 900,
             }}
           >
             SIGN OUT
@@ -512,27 +304,14 @@ function RootApp() {
     );
   }
 
-  /* =====================================================
-     UNKNOWN ROLE
-  ===================================================== */
-
   return (
     <div
       style={{
-        minHeight:
-          "100vh",
-
-        display:
-          "grid",
-
-        placeItems:
-          "center",
-
-        background:
-          "#03050a",
-
-        color:
-          "white",
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        background: "#03050a",
+        color: "white",
       }}
     >
       Invalid account role.
@@ -553,62 +332,36 @@ function AccessDenied({
   return (
     <div
       style={{
-        minHeight:
-          "100vh",
-
-        display:
-          "grid",
-
-        placeItems:
-          "center",
-
-        padding:
-          "24px",
-
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: "24px",
         background:
           "radial-gradient(circle at top, #2a1015, #03050a)",
-
-        color:
-          "white",
-
+        color: "white",
         fontFamily:
           "Inter, Arial, sans-serif",
-
-        textAlign:
-          "center",
+        textAlign: "center",
       }}
     >
       <div
         style={{
           width:
             "min(520px, 94vw)",
-
-          padding:
-            "30px",
-
+          padding: "30px",
           border:
             "1px solid rgba(248,113,113,.28)",
-
-          borderRadius:
-            "18px",
-
+          borderRadius: "18px",
           background:
             "rgba(15,23,42,.78)",
         }}
       >
         <div
           style={{
-            color:
-              "#fca5a5",
-
-            fontSize:
-              "12px",
-
-            fontWeight:
-              900,
-
-            letterSpacing:
-              ".14em",
+            color: "#fca5a5",
+            fontSize: "12px",
+            fontWeight: 900,
+            letterSpacing: ".14em",
           }}
         >
           ACCESS DENIED
@@ -620,15 +373,13 @@ function AccessDenied({
 
         <p
           style={{
-            color:
-              "#94a3b8",
+            color: "#94a3b8",
           }}
         >
           This account is signed in as{" "}
           <strong
             style={{
-              color:
-                "#f8fafc",
+              color: "#f8fafc",
             }}
           >
             {actualRole.toUpperCase()}
@@ -641,29 +392,15 @@ function AccessDenied({
             void signOut()
           }
           style={{
-            marginTop:
-              "12px",
-
-            padding:
-              "10px 16px",
-
+            marginTop: "12px",
+            padding: "10px 16px",
             border:
               "1px solid #f7c948",
-
-            borderRadius:
-              "9px",
-
-            background:
-              "#08101e",
-
-            color:
-              "#f7c948",
-
-            cursor:
-              "pointer",
-
-            fontWeight:
-              900,
+            borderRadius: "9px",
+            background: "#08101e",
+            color: "#f7c948",
+            cursor: "pointer",
+            fontWeight: 900,
           }}
         >
           SIGN OUT
