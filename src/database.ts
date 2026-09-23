@@ -7,6 +7,36 @@ import type {
   TournamentSettings,
 } from "./types";
 
+export type AuctionDivision =
+  | "MEN"
+  | "WOMEN";
+
+export type PlayerCategory =
+  | "MARQUEE"
+  | "GOLD"
+  | "SILVER";
+
+export function getPlayerCategory(
+  player: AuctionPlayer
+): PlayerCategory {
+  const raw =
+    (
+      player as AuctionPlayer & {
+        category?: string;
+      }
+    ).category;
+
+  if (raw === "MARQUEE") {
+    return "MARQUEE";
+  }
+
+  if (raw === "GOLD") {
+    return "GOLD";
+  }
+
+  return "SILVER";
+}
+
 export type DatabaseHistoryEntry = {
   id: number;
   playerId: number;
@@ -57,6 +87,78 @@ export type DisplayEvent = {
   updatedAt: string | null;
 };
 
+
+export function getCategoryBasePrice(
+  category: PlayerCategory
+): number {
+  if (category === "MARQUEE") {
+    return 4;
+  }
+
+  if (category === "GOLD") {
+    return 3;
+  }
+
+  return 2;
+}
+
+export function getCategoryBidIncrement(
+  category: PlayerCategory
+): number {
+  if (category === "MARQUEE") {
+    return 2;
+  }
+
+  if (category === "GOLD") {
+    return 1.5;
+  }
+
+  return 1;
+}
+
+
+export type PlayerStats = {
+  matches: number;
+  runs: number;
+  battingAverage: number;
+  strikeRate: number;
+  wickets: number;
+  economyRate: number;
+};
+
+export const EMPTY_PLAYER_STATS: PlayerStats = {
+  matches: 0,
+  runs: 0,
+  battingAverage: 0,
+  strikeRate: 0,
+  wickets: 0,
+  economyRate: 0,
+};
+
+export function getPlayerStats(
+  player: AuctionPlayer
+): PlayerStats {
+  const raw =
+    player as AuctionPlayer & {
+      matches?: number;
+      runs?: number;
+      battingAverage?: number;
+      strikeRate?: number;
+      wickets?: number;
+      economyRate?: number;
+    };
+
+  return {
+    matches: Number(raw.matches ?? 0),
+    runs: Number(raw.runs ?? 0),
+    battingAverage: Number(raw.battingAverage ?? 0),
+    strikeRate: Number(raw.strikeRate ?? 0),
+    wickets: Number(raw.wickets ?? 0),
+    economyRate: Number(raw.economyRate ?? 0),
+  };
+}
+
+
 type TeamRow = {
   id: number;
   name: string;
@@ -82,6 +184,16 @@ type PlayerRow = {
     | null;
   queue_position: number;
   status: string;
+  category:
+    | PlayerCategory
+    | string
+    | null;
+  matches: number | string | null;
+  runs: number | string | null;
+  batting_average: number | string | null;
+  strike_rate: number | string | null;
+  wickets: number | string | null;
+  economy_rate: number | string | null;
 };
 
 type RelatedPlayerRow = {
@@ -112,7 +224,9 @@ type PurchaseRow = {
    TOURNAMENT SETTINGS
 ===================================================== */
 
-export async function loadTournamentSettings(): Promise<TournamentSettings> {
+export async function loadTournamentSettings(
+  division: AuctionDivision = "MEN"
+): Promise<TournamentSettings> {
   const {
     data,
     error,
@@ -122,7 +236,10 @@ export async function loadTournamentSettings(): Promise<TournamentSettings> {
         "tournament_settings"
       )
       .select("*")
-      .eq("id", 1)
+      .eq(
+        "division",
+        division
+      )
       .single();
 
   if (error) {
@@ -144,7 +261,8 @@ export async function loadTournamentSettings(): Promise<TournamentSettings> {
 }
 
 export async function saveTournamentSettings(
-  settings: TournamentSettings
+  settings: TournamentSettings,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -166,7 +284,10 @@ export async function saveTournamentSettings(
         updated_at:
           new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq(
+        "division",
+        division
+      );
 
   if (error) {
     throw error;
@@ -177,7 +298,9 @@ export async function saveTournamentSettings(
    TEAMS
 ===================================================== */
 
-export async function loadTeams(): Promise<Team[]> {
+export async function loadTeams(
+  division: AuctionDivision = "MEN"
+): Promise<Team[]> {
   const {
     data: teamData,
     error: teamError,
@@ -185,6 +308,10 @@ export async function loadTeams(): Promise<Team[]> {
     await supabase
       .from("teams")
       .select("*")
+      .eq(
+        "division",
+        division
+      )
       .order("id");
 
   if (teamError) {
@@ -207,7 +334,11 @@ export async function loadTeams(): Promise<Team[]> {
           base_price,
           photo_url
         )
-      `);
+      `)
+      .eq(
+        "division",
+        division
+      );
 
   if (purchaseError) {
     throw purchaseError;
@@ -333,7 +464,8 @@ export async function loadTeams(): Promise<Team[]> {
 }
 
 export async function updateTeamRecord(
-  team: Team
+  team: Team,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -363,6 +495,10 @@ export async function updateTeamRecord(
       .eq(
         "id",
         team.id
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (error) {
@@ -370,11 +506,127 @@ export async function updateTeamRecord(
   }
 }
 
+export type NewTeamRecord = {
+  name: string;
+  shortName: string;
+  owner: string;
+  startingPurse: number;
+};
+
+export async function insertTeamRecord(
+  team: NewTeamRecord,
+  division: AuctionDivision = "MEN"
+): Promise<number> {
+  /*
+    The original teams table was created with fixed numeric IDs.
+    Unlike newer tables, its ID is not guaranteed to auto-generate.
+    Read the highest existing ID and explicitly allocate the next one.
+  */
+  const {
+    data:
+      existingTeams,
+    error:
+      idError,
+  } =
+    await supabase
+      .from(
+        "teams"
+      )
+      .select(
+        "id"
+      )
+      .order(
+        "id",
+        {
+          ascending:
+            false,
+        }
+      )
+      .limit(1);
+
+  if (idError) {
+    throw new Error(
+      idError.message
+    );
+  }
+
+  const nextId =
+    (
+      existingTeams &&
+      existingTeams.length >
+        0
+        ? Number(
+            existingTeams[0].id
+          )
+        : 0
+    ) +
+    1;
+
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from(
+        "teams"
+      )
+      .insert({
+        id:
+          nextId,
+
+        name:
+          team.name,
+
+        short_name:
+          team.shortName,
+
+        owner:
+          team.owner,
+
+        starting_purse:
+          team.startingPurse,
+
+        logo_url:
+          null,
+
+        division,
+
+        updated_at:
+          new Date().toISOString(),
+      })
+      .select(
+        "id"
+      )
+      .single();
+
+  if (error) {
+    throw new Error(
+      [
+        error.message,
+        error.details,
+        error.hint,
+      ]
+        .filter(
+          Boolean
+        )
+        .join(
+          " | "
+        )
+    );
+  }
+
+  return Number(
+    data.id
+  );
+}
+
 /* =====================================================
    AUCTION PLAYERS
 ===================================================== */
 
-export async function loadAuctionPlayers(): Promise<AuctionPlayer[]> {
+export async function loadAuctionPlayers(
+  division: AuctionDivision = "MEN"
+): Promise<AuctionPlayer[]> {
   const {
     data,
     error,
@@ -384,6 +636,10 @@ export async function loadAuctionPlayers(): Promise<AuctionPlayer[]> {
         "auction_players"
       )
       .select("*")
+      .eq(
+        "division",
+        division
+      )
       .order(
         "queue_position",
         {
@@ -427,6 +683,37 @@ export async function loadAuctionPlayers(): Promise<AuctionPlayer[]> {
           row.photo_url;
       }
 
+      const extendedPlayer =
+        player as AuctionPlayer & {
+          category?: PlayerCategory;
+          matches?: number;
+          runs?: number;
+          battingAverage?: number;
+          strikeRate?: number;
+          wickets?: number;
+          economyRate?: number;
+        };
+
+      extendedPlayer.category =
+        row.category === "MARQUEE"
+          ? "MARQUEE"
+          : row.category === "GOLD"
+          ? "GOLD"
+          : "SILVER";
+
+      extendedPlayer.matches =
+        Number(row.matches ?? 0);
+      extendedPlayer.runs =
+        Number(row.runs ?? 0);
+      extendedPlayer.battingAverage =
+        Number(row.batting_average ?? 0);
+      extendedPlayer.strikeRate =
+        Number(row.strike_rate ?? 0);
+      extendedPlayer.wickets =
+        Number(row.wickets ?? 0);
+      extendedPlayer.economyRate =
+        Number(row.economy_rate ?? 0);
+
       return player;
     }
   );
@@ -434,7 +721,10 @@ export async function loadAuctionPlayers(): Promise<AuctionPlayer[]> {
 
 export async function insertAuctionPlayer(
   player: AuctionPlayer,
-  queuePosition: number
+  queuePosition: number,
+  division: AuctionDivision = "MEN",
+  category: PlayerCategory = "SILVER",
+  stats: PlayerStats = EMPTY_PLAYER_STATS
 ) {
   const {
     error,
@@ -454,7 +744,9 @@ export async function insertAuctionPlayer(
           player.role,
 
         base_price:
-          player.basePrice,
+          getCategoryBasePrice(
+            category
+          ),
 
         photo_url:
           player.photo ??
@@ -466,9 +758,105 @@ export async function insertAuctionPlayer(
         status:
           "PENDING",
 
+        category,
+
+        matches:
+          stats.matches,
+
+        runs:
+          stats.runs,
+
+        batting_average:
+          stats.battingAverage,
+
+        strike_rate:
+          stats.strikeRate,
+
+        wickets:
+          stats.wickets,
+
+        economy_rate:
+          stats.economyRate,
+
+        division,
+
         updated_at:
           new Date().toISOString(),
       });
+
+  if (error) {
+    throw new Error(
+      [
+        error.message,
+        error.details,
+        error.hint,
+      ]
+        .filter(
+          Boolean
+        )
+        .join(
+          " | "
+        )
+    );
+  }
+}
+
+export async function updateAuctionPlayerStats(
+  playerId: number,
+  stats: PlayerStats,
+  division: AuctionDivision = "MEN"
+) {
+  const { error } =
+    await supabase
+      .from("auction_players")
+      .update({
+        matches: stats.matches,
+        runs: stats.runs,
+        batting_average: stats.battingAverage,
+        strike_rate: stats.strikeRate,
+        wickets: stats.wickets,
+        economy_rate: stats.economyRate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", playerId)
+      .eq("division", division);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateAuctionPlayerCategory(
+  playerId: number,
+  category: PlayerCategory,
+  division: AuctionDivision = "MEN"
+) {
+  const {
+    error,
+  } =
+    await supabase
+      .from(
+        "auction_players"
+      )
+      .update({
+        category,
+
+        base_price:
+          getCategoryBasePrice(
+            category
+          ),
+
+        updated_at:
+          new Date().toISOString(),
+      })
+      .eq(
+        "id",
+        playerId
+      )
+      .eq(
+        "division",
+        division
+      );
 
   if (error) {
     throw error;
@@ -476,7 +864,8 @@ export async function insertAuctionPlayer(
 }
 
 export async function deleteAuctionPlayerRecord(
-  playerId: number
+  playerId: number,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -489,6 +878,10 @@ export async function deleteAuctionPlayerRecord(
       .eq(
         "id",
         playerId
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (error) {
@@ -500,7 +893,9 @@ export async function deleteAuctionPlayerRecord(
    AUCTION HISTORY
 ===================================================== */
 
-export async function loadAuctionHistory(): Promise<
+export async function loadAuctionHistory(
+  division: AuctionDivision = "MEN"
+): Promise<
   DatabaseHistoryEntry[]
 > {
   const {
@@ -512,6 +907,10 @@ export async function loadAuctionHistory(): Promise<
         "auction_history"
       )
       .select("*")
+      .eq(
+        "division",
+        division
+      )
       .order(
         "created_at",
         {
@@ -592,7 +991,9 @@ export async function loadAuctionHistory(): Promise<
    AUCTION STATE
 ===================================================== */
 
-export async function loadAuctionState(): Promise<AuctionState> {
+export async function loadAuctionState(
+  division: AuctionDivision = "MEN"
+): Promise<AuctionState> {
   const {
     data,
     error,
@@ -602,7 +1003,10 @@ export async function loadAuctionState(): Promise<AuctionState> {
         "auction_state"
       )
       .select("*")
-      .eq("id", 1)
+      .eq(
+        "division",
+        division
+      )
       .single();
 
   if (error) {
@@ -661,7 +1065,8 @@ export async function loadAuctionState(): Promise<AuctionState> {
 }
 
 export async function saveAuctionState(
-  state: AuctionState
+  state: AuctionState,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -698,7 +1103,10 @@ export async function saveAuctionState(
         updated_at:
           new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq(
+        "division",
+        division
+      );
 
   if (error) {
     throw error;
@@ -830,7 +1238,9 @@ export function getTimerRemainingSeconds(
    DISPLAY EVENT
 ===================================================== */
 
-export async function loadDisplayEvent(): Promise<DisplayEvent> {
+export async function loadDisplayEvent(
+  division: AuctionDivision = "MEN"
+): Promise<DisplayEvent> {
   const {
     data,
     error,
@@ -840,7 +1250,10 @@ export async function loadDisplayEvent(): Promise<DisplayEvent> {
         "display_event"
       )
       .select("*")
-      .eq("id", 1)
+      .eq(
+        "division",
+        division
+      )
       .single();
 
   if (error) {
@@ -900,7 +1313,8 @@ export async function loadDisplayEvent(): Promise<DisplayEvent> {
 export async function triggerSoldDisplayEvent(
   player: AuctionPlayer,
   team: Team,
-  price: number
+  price: number,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -938,7 +1352,10 @@ export async function triggerSoldDisplayEvent(
         updated_at:
           new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq(
+        "division",
+        division
+      );
 
   if (error) {
     throw error;
@@ -946,7 +1363,8 @@ export async function triggerSoldDisplayEvent(
 }
 
 export async function triggerUnsoldDisplayEvent(
-  player: AuctionPlayer
+  player: AuctionPlayer,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error,
@@ -984,14 +1402,19 @@ export async function triggerUnsoldDisplayEvent(
         updated_at:
           new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq(
+        "division",
+        division
+      );
 
   if (error) {
     throw error;
   }
 }
 
-export async function clearDisplayEvent() {
+export async function clearDisplayEvent(
+  division: AuctionDivision = "MEN"
+) {
   const {
     error,
   } =
@@ -1027,7 +1450,59 @@ export async function clearDisplayEvent() {
         updated_at:
           new Date().toISOString(),
       })
-      .eq("id", 1);
+      .eq(
+        "division",
+        division
+      );
+
+  if (error) {
+    throw error;
+  }
+}
+
+/* =====================================================
+   TRANSFER / SWAP PURCHASED PLAYERS
+===================================================== */
+
+export async function transferOrSwapPurchasedPlayer(
+  params: {
+    division: AuctionDivision;
+    playerId: number;
+    fromTeamId: number;
+    toTeamId: number;
+    swapPlayerId?: number | null;
+  }
+) {
+  const {
+    division,
+    playerId,
+    fromTeamId,
+    toTeamId,
+    swapPlayerId = null,
+  } = params;
+
+  const {
+    error,
+  } =
+    await supabase.rpc(
+      "transfer_or_swap_purchased_player",
+      {
+        p_division:
+          division,
+
+        p_player_id:
+          playerId,
+
+        p_from_team_id:
+          fromTeamId,
+
+        p_to_team_id:
+          toTeamId,
+
+        p_swap_player_id:
+          swapPlayerId,
+      }
+    );
 
   if (error) {
     throw error;
@@ -1041,7 +1516,8 @@ export async function clearDisplayEvent() {
 export async function sellPlayer(
   player: AuctionPlayer,
   team: Team,
-  price: number
+  price: number,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error:
@@ -1060,6 +1536,8 @@ export async function sellPlayer(
 
         purchase_price:
           price,
+
+        division,
       });
 
   if (
@@ -1086,6 +1564,10 @@ export async function sellPlayer(
       .eq(
         "id",
         player.id
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1119,6 +1601,8 @@ export async function sellPlayer(
           team.name,
 
         price,
+
+        division,
       });
 
   if (
@@ -1133,7 +1617,8 @@ export async function sellPlayer(
 ===================================================== */
 
 export async function markPlayerUnsold(
-  player: AuctionPlayer
+  player: AuctionPlayer,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error:
@@ -1153,6 +1638,10 @@ export async function markPlayerUnsold(
       .eq(
         "id",
         player.id
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1178,6 +1667,8 @@ export async function markPlayerUnsold(
 
         status:
           "UNSOLD",
+
+        division,
       });
 
   if (
@@ -1191,7 +1682,9 @@ export async function markPlayerUnsold(
    UNDO
 ===================================================== */
 
-export async function undoLastDatabaseAction() {
+export async function undoLastDatabaseAction(
+  division: AuctionDivision = "MEN"
+) {
   const {
     data,
     error,
@@ -1201,6 +1694,10 @@ export async function undoLastDatabaseAction() {
         "auction_history"
       )
       .select("*")
+      .eq(
+        "division",
+        division
+      )
       .order(
         "created_at",
         {
@@ -1240,6 +1737,10 @@ export async function undoLastDatabaseAction() {
         .eq(
           "player_id",
           playerId
+        )
+        .eq(
+          "division",
+          division
         );
 
     if (
@@ -1267,6 +1768,10 @@ export async function undoLastDatabaseAction() {
       .eq(
         "id",
         playerId
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1287,6 +1792,10 @@ export async function undoLastDatabaseAction() {
       .eq(
         "id",
         data.id
+      )
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1310,7 +1819,8 @@ export async function undoLastDatabaseAction() {
 ===================================================== */
 
 export async function resetDatabaseAuction(
-  firstBasePrice: number
+  firstBasePrice: number,
+  division: AuctionDivision = "MEN"
 ) {
   const {
     error:
@@ -1321,9 +1831,9 @@ export async function resetDatabaseAuction(
         "purchases"
       )
       .delete()
-      .gte(
-        "id",
-        0
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1341,9 +1851,9 @@ export async function resetDatabaseAuction(
         "auction_history"
       )
       .delete()
-      .gte(
-        "id",
-        0
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1367,9 +1877,9 @@ export async function resetDatabaseAuction(
         updated_at:
           new Date().toISOString(),
       })
-      .neq(
-        "status",
-        "__never__"
+      .eq(
+        "division",
+        division
       );
 
   if (
@@ -1378,31 +1888,36 @@ export async function resetDatabaseAuction(
     throw playerError;
   }
 
-  await saveAuctionState({
-    currentPlayerIndex:
-      0,
+  await saveAuctionState(
+    {
+      currentPlayerIndex:
+        0,
 
-    currentBid:
-      firstBasePrice,
+      currentBid:
+        firstBasePrice,
 
-    biddingTeamId:
-      null,
+      biddingTeamId:
+        null,
 
-    timerDuration:
-      30,
+      timerDuration:
+        30,
 
-    timerStatus:
-      "STOPPED",
+      timerStatus:
+        "STOPPED",
 
-    timerEndsAt:
-      null,
+      timerEndsAt:
+        null,
 
-    timerPausedRemaining:
-      null,
+      timerPausedRemaining:
+        null,
 
-    callState:
-      "BIDDING",
-  });
+      callState:
+        "BIDDING",
+    },
+    division
+  );
 
-  await clearDisplayEvent();
+  await clearDisplayEvent(
+    division
+  );
 }
