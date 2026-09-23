@@ -219,12 +219,30 @@ function PublicDisplay() {
               ? "AUCTION"
               : "WELCOME";
 
+        /*
+          IMPORTANT:
+          Do not clear selectedTeamId on every projector sync refresh.
+
+          The mobile/projector fallback polling reloads the shared
+          projector state regularly. Clearing selectedTeamId here
+          caused the Full Team view to close and jump back to the
+          auction screen on the next sync cycle.
+
+          We only close the team detail when:
+          1. the projector is explicitly moved to WELCOME, or
+          2. the MEN/WOMEN division actually changes.
+        */
+        if (
+          nextScreenMode ===
+          "WELCOME"
+        ) {
+          setSelectedTeamId(
+            null
+          );
+        }
+
         setProjectorScreenMode(
           nextScreenMode
-        );
-
-        setSelectedTeamId(
-          null
         );
 
         setDivision(
@@ -237,6 +255,10 @@ function PublicDisplay() {
             ) {
               return currentDivision;
             }
+
+            setSelectedTeamId(
+              null
+            );
 
             const params =
               new URLSearchParams(
