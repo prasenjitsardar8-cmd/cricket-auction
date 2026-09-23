@@ -1568,3 +1568,179 @@ select {
     justify-content: space-between;
   }
 }
+
+
+/* =====================================================
+   PROJECTOR LIVE AUCTION SUMMARY
+===================================================== */
+
+.projector-live-summary {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 23, 45, 0.95),
+      rgba(5, 10, 22, 0.98)
+    );
+}
+
+.projector-summary-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.projector-summary-heading h2 {
+  margin: 5px 0 0;
+  font-size:
+    clamp(
+      20px,
+      2vw,
+      30px
+    );
+}
+
+.projector-summary-progress-label {
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.projector-summary-progress {
+  height: 8px;
+  margin-top: 13px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    rgba(
+      148,
+      163,
+      184,
+      0.13
+    );
+}
+
+.projector-summary-progress > div {
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      #2563eb,
+      #22c55e
+    );
+  transition:
+    width
+    0.45s
+    ease;
+}
+
+.projector-summary-grid {
+  display: grid;
+  grid-template-columns:
+    0.75fr
+    0.75fr
+    0.9fr
+    1.15fr
+    1.45fr;
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.projector-summary-stat {
+  min-width: 0;
+  min-height: 92px;
+  padding: 13px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.46);
+}
+
+.projector-summary-stat > span {
+  color: #7d8ca3;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.projector-summary-stat > strong {
+  display: block;
+  margin-top: 4px;
+  font-size:
+    clamp(
+      22px,
+      2vw,
+      31px
+    );
+  line-height: 1.05;
+}
+
+.projector-summary-stat > small {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #94a3b8;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projector-summary-stat.sold > strong {
+  color: #86efac;
+}
+
+.projector-summary-stat.unsold > strong {
+  color: #fca5a5;
+}
+
+.projector-summary-stat.remaining > strong {
+  color: #bfdbfe;
+}
+
+.projector-summary-stat.money > strong,
+.projector-summary-stat.highest > strong {
+  color: #f7d66f;
+}
+
+@media (max-width: 1180px) {
+  .projector-summary-grid {
+    grid-template-columns:
+      repeat(
+        3,
+        1fr
+      );
+  }
+
+  .projector-summary-stat.highest {
+    grid-column:
+      span
+      2;
+  }
+}
+
+@media (max-width: 760px) {
+  .projector-summary-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .projector-summary-grid {
+    grid-template-columns:
+      1fr
+      1fr;
+  }
+
+  .projector-summary-stat.highest {
+    grid-column:
+      1 / -1;
+  }
+}

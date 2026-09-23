@@ -10,8 +10,17 @@ import "./App.css";
 import "./AuctionTimer.css";
 import "./AuctionShortcuts.css";
 import "./SmartBidding.css";
+import "./AuctionDivision.css";
+import "./PlayerCategory.css";
+import "./PlayerStats.css";
+import "./PlayerTransfer.css";
 
 import UserManagement from "./UserManagement";
+import AuctionRecovery from "./AuctionRecovery";
+import AuctionAudit from "./AuctionAudit";
+import AuctionSummary from "./AuctionSummary";
+import AuctionExports from "./AuctionExports";
+import PreAuctionHealth from "./PreAuctionHealth";
 
 import {
   supabase,
@@ -20,6 +29,7 @@ import {
 import {
   deleteAuctionPlayerRecord,
   insertAuctionPlayer,
+  insertTeamRecord,
   loadAuctionHistory,
   loadAuctionPlayers,
   loadAuctionState,
@@ -30,8 +40,19 @@ import {
   saveAuctionState,
   saveTournamentSettings,
   sellPlayer,
+  transferOrSwapPurchasedPlayer,
   undoLastDatabaseAction,
   updateTeamRecord,
+  updateAuctionPlayerCategory,
+  getPlayerCategory,
+  getCategoryBasePrice,
+  getCategoryBidIncrement,
+  getPlayerStats,
+  updateAuctionPlayerStats,
+  EMPTY_PLAYER_STATS,
+  type AuctionDivision,
+  type PlayerCategory,
+  type PlayerStats,
   type DatabaseHistoryEntry,
   triggerSoldDisplayEvent,
   triggerUnsoldDisplayEvent,
@@ -58,7 +79,12 @@ type Screen =
   | "control"
   | "players"
   | "teams"
-  | "users";
+  | "users"
+  | "recovery"
+  | "audit"
+  | "summary"
+  | "exports"
+  | "health";
 
 function App() {
   /* =====================================================
@@ -71,6 +97,14 @@ function App() {
   ] =
     useState<Screen>(
       "board"
+    );
+
+  const [
+    activeDivision,
+    setActiveDivision,
+  ] =
+    useState<AuctionDivision>(
+      "MEN"
     );
 
   /* =====================================================
@@ -216,6 +250,49 @@ function App() {
   ] =
     useState(false);
 
+
+  /* =====================================================
+     PLAYER TRANSFER / SWAP STATE
+  ===================================================== */
+
+  const [
+    transferMode,
+    setTransferMode,
+  ] =
+    useState<
+      "TRANSFER" | "SWAP"
+    >("TRANSFER");
+
+  const [
+    transferPlayerId,
+    setTransferPlayerId,
+  ] =
+    useState<
+      number | null
+    >(null);
+
+  const [
+    transferTargetTeamId,
+    setTransferTargetTeamId,
+  ] =
+    useState<
+      number | null
+    >(null);
+
+  const [
+    swapPlayerId,
+    setSwapPlayerId,
+  ] =
+    useState<
+      number | null
+    >(null);
+
+  const [
+    transferMessage,
+    setTransferMessage,
+  ] =
+    useState("");
+
   /* =====================================================
      PLAYER FORM
   ===================================================== */
@@ -235,10 +312,46 @@ function App() {
     );
 
   const [
+    playerCategory,
+    setPlayerCategory,
+  ] =
+    useState<PlayerCategory>(
+      "SILVER"
+    );
+
+  const [
     playerBasePrice,
     setPlayerBasePrice,
   ] =
-    useState(1);
+    useState(
+      getCategoryBasePrice(
+        "SILVER"
+      )
+    );
+
+  const [
+    playerStats,
+    setPlayerStats,
+  ] =
+    useState<PlayerStats>({
+      ...EMPTY_PLAYER_STATS,
+    });
+
+  const [
+    statsEditorPlayerId,
+    setStatsEditorPlayerId,
+  ] =
+    useState<number | null>(
+      null
+    );
+
+  const [
+    editPlayerStats,
+    setEditPlayerStats,
+  ] =
+    useState<PlayerStats>({
+      ...EMPTY_PLAYER_STATS,
+    });
 
   const [
     playerPhotoFile,
@@ -253,6 +366,30 @@ function App() {
     setPlayerPhotoPreview,
   ] =
     useState("");
+
+  const [
+    newTeamName,
+    setNewTeamName,
+  ] =
+    useState("");
+
+  const [
+    newTeamShortName,
+    setNewTeamShortName,
+  ] =
+    useState("");
+
+  const [
+    newTeamOwner,
+    setNewTeamOwner,
+  ] =
+    useState("");
+
+  const [
+    newTeamPurse,
+    setNewTeamPurse,
+  ] =
+    useState(10);
 
   /* =====================================================
      LOAD ALL DATA
@@ -281,11 +418,21 @@ function App() {
             loadedState,
           ] =
             await Promise.all([
-              loadTournamentSettings(),
-              loadTeams(),
-              loadAuctionPlayers(),
-              loadAuctionHistory(),
-              loadAuctionState(),
+              loadTournamentSettings(
+                activeDivision
+              ),
+              loadTeams(
+                activeDivision
+              ),
+              loadAuctionPlayers(
+                activeDivision
+              ),
+              loadAuctionHistory(
+                activeDivision
+              ),
+              loadAuctionState(
+                activeDivision
+              ),
             ]);
 
           setSettings(
@@ -395,7 +542,9 @@ function App() {
           }
         }
       },
-      []
+      [
+        activeDivision,
+      ]
     );
 
   /* =====================================================
@@ -416,7 +565,7 @@ function App() {
     const channel =
       supabase
         .channel(
-          "admin-auction-live"
+          `${activeDivision.toLowerCase()}-admin-auction-live`
         )
 
         .on(
@@ -637,7 +786,8 @@ function App() {
                 : timerPausedRemaining,
             callState:
               nextCallState,
-          });
+          },
+          activeDivision);
         } catch (error) {
           console.error(
             "Unable to sync auction call state.",
@@ -718,7 +868,8 @@ function App() {
           null,
         callState:
           "BIDDING",
-      });
+      },
+          activeDivision);
     };
 
   const pauseTimer =
@@ -760,7 +911,8 @@ function App() {
         timerPausedRemaining:
           remaining,
         callState,
-      });
+      },
+          activeDivision);
     };
 
   const resumeTimer =
@@ -815,7 +967,8 @@ function App() {
         timerPausedRemaining:
           null,
         callState,
-      });
+      },
+          activeDivision);
     };
 
   const resetTimer =
@@ -853,7 +1006,8 @@ function App() {
           null,
         callState:
           "BIDDING",
-      });
+      },
+          activeDivision);
     };
 
   const changeTimerDuration =
@@ -906,7 +1060,8 @@ function App() {
           null,
         callState:
           "BIDDING",
-      });
+      },
+          activeDivision);
     };
 
 
@@ -1031,10 +1186,156 @@ function App() {
       team.id
     );
 
+    setTransferMode(
+      "TRANSFER"
+    );
+
+    setTransferPlayerId(
+      null
+    );
+
+    setTransferTargetTeamId(
+      null
+    );
+
+    setSwapPlayerId(
+      null
+    );
+
+    setTransferMessage(
+      ""
+    );
+
     setScreen(
       "team"
     );
   };
+
+  const changeDivision = (
+    division:
+      AuctionDivision
+  ) => {
+    if (
+      division ===
+      activeDivision
+    ) {
+      return;
+    }
+
+    setSelectedTeamId(
+      null
+    );
+
+    setBiddingTeamId(
+      null
+    );
+
+    setScreen(
+      "board"
+    );
+
+    setActiveDivision(
+      division
+    );
+  };
+
+  const addTeam =
+    async () => {
+      if (
+        !newTeamName.trim()
+      ) {
+        alert(
+          "Please enter the team name."
+        );
+
+        return;
+      }
+
+      if (
+        !newTeamShortName.trim()
+      ) {
+        alert(
+          "Please enter the team short code."
+        );
+
+        return;
+      }
+
+      if (
+        newTeamPurse <=
+        0
+      ) {
+        alert(
+          "Starting purse must be greater than zero."
+        );
+
+        return;
+      }
+
+      try {
+        setSaving(
+          true
+        );
+
+        await insertTeamRecord(
+          {
+            name:
+              newTeamName.trim(),
+
+            shortName:
+              newTeamShortName
+                .trim()
+                .toUpperCase()
+                .slice(
+                  0,
+                  4
+                ),
+
+            owner:
+              newTeamOwner.trim(),
+
+            startingPurse:
+              newTeamPurse,
+          },
+          activeDivision
+        );
+
+        setNewTeamName(
+          ""
+        );
+
+        setNewTeamShortName(
+          ""
+        );
+
+        setNewTeamOwner(
+          ""
+        );
+
+        await refreshData();
+
+        alert(
+          `${activeDivision === "WOMEN" ? "Women's" : "Men's"} team added successfully.`
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          error
+        );
+
+        alert(
+          error instanceof
+            Error
+            ? error.message
+            : "Unable to add team."
+        );
+      } finally {
+        setSaving(
+          false
+        );
+      }
+    };
 
   /* =====================================================
      TOURNAMENT SETTINGS
@@ -1048,7 +1349,8 @@ function App() {
         );
 
         await saveTournamentSettings(
-          settings
+          settings,
+          activeDivision
         );
 
         await refreshData();
@@ -1151,7 +1453,8 @@ function App() {
         );
 
         await updateTeamRecord(
-          team
+          team,
+          activeDivision
         );
 
         await refreshData();
@@ -1202,11 +1505,14 @@ function App() {
             file
           );
 
-        await updateTeamRecord({
-          ...team,
-          logo:
-            publicUrl,
-        });
+        await updateTeamRecord(
+          {
+            ...team,
+            logo:
+              publicUrl,
+          },
+          activeDivision
+        );
 
         await refreshData();
 
@@ -1242,11 +1548,14 @@ function App() {
           true
         );
 
-        await updateTeamRecord({
-          ...team,
-          logo:
-            undefined,
-        });
+        await updateTeamRecord(
+          {
+            ...team,
+            logo:
+              undefined,
+          },
+          activeDivision
+        );
 
         await refreshData();
       } catch (
@@ -1379,7 +1688,9 @@ function App() {
               playerRole,
 
             basePrice:
-              playerBasePrice,
+              getCategoryBasePrice(
+                playerCategory
+              ),
 
             photo:
               photoUrl,
@@ -1388,7 +1699,10 @@ function App() {
         await insertAuctionPlayer(
           player,
           auctionPlayers.length +
-            1
+            1,
+          activeDivision,
+          playerCategory,
+          playerStats
         );
 
         setPlayerName(
@@ -1399,9 +1713,19 @@ function App() {
           "Batter"
         );
 
-        setPlayerBasePrice(
-          1
+        setPlayerCategory(
+          "SILVER"
         );
+
+        setPlayerBasePrice(
+          getCategoryBasePrice(
+            "SILVER"
+          )
+        );
+
+        setPlayerStats({
+          ...EMPTY_PLAYER_STATS,
+        });
 
         clearPlayerPhoto();
 
@@ -1479,7 +1803,8 @@ function App() {
         );
 
         await deleteAuctionPlayerRecord(
-          player.id
+          player.id,
+          activeDivision
         );
 
         await refreshData();
@@ -1492,6 +1817,62 @@ function App() {
 
         alert(
           "Unable to delete player."
+        );
+      } finally {
+        setSaving(
+          false
+        );
+      }
+    };
+
+  const openStatsEditor = (
+    player: AuctionPlayer
+  ) => {
+    setStatsEditorPlayerId(
+      player.id
+    );
+
+    setEditPlayerStats(
+      getPlayerStats(
+        player
+      )
+    );
+  };
+
+  const saveEditedStats =
+    async () => {
+      if (
+        statsEditorPlayerId ===
+        null
+      ) {
+        return;
+      }
+
+      try {
+        setSaving(
+          true
+        );
+
+        await updateAuctionPlayerStats(
+          statsEditorPlayerId,
+          editPlayerStats,
+          activeDivision
+        );
+
+        await refreshData();
+
+        setStatsEditorPlayerId(
+          null
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          error
+        );
+
+        alert(
+          "Unable to update player stats."
         );
       } finally {
         setSaving(
@@ -1543,15 +1924,58 @@ function App() {
                 Boolean
               );
 
-          const validRoles: PlayerRole[] =
-            [
-              "Batter",
-              "Bowler",
-              "All-Rounder",
-              "Wicketkeeper",
-            ];
+          const normalizeRole =
+            (
+              rawRole: string
+            ): PlayerRole | null => {
+              const normalized =
+                rawRole
+                  .trim()
+                  .toLowerCase()
+                  .replace(
+                    /[\s_-]+/g,
+                    ""
+                  );
+
+              if (
+                normalized ===
+                "batter"
+              ) {
+                return "Batter";
+              }
+
+              if (
+                normalized ===
+                "bowler"
+              ) {
+                return "Bowler";
+              }
+
+              if (
+                normalized ===
+                  "allrounder" ||
+                normalized ===
+                  "allround"
+              ) {
+                return "All-Rounder";
+              }
+
+              if (
+                normalized ===
+                  "wicketkeeper" ||
+                normalized ===
+                  "keeper"
+              ) {
+                return "Wicketkeeper";
+              }
+
+              return null;
+            };
 
           let imported =
+            0;
+
+          let skipped =
             0;
 
           for (
@@ -1574,6 +1998,13 @@ function App() {
               name,
               roleRaw,
               baseRaw,
+              categoryRaw,
+              matchesRaw,
+              runsRaw,
+              battingAverageRaw,
+              strikeRateRaw,
+              wicketsRaw,
+              economyRateRaw,
             ] =
               columns;
 
@@ -1586,30 +2017,66 @@ function App() {
             }
 
             const role =
-              roleRaw as PlayerRole;
+              normalizeRole(
+                roleRaw
+              );
 
-            if (
-              !validRoles.includes(
-                role
-              )
-            ) {
+            if (!role) {
+              skipped++;
               continue;
             }
 
-            const basePrice =
+            const suppliedBasePrice =
               Number(
                 baseRaw
+                  .toUpperCase()
+                  .replace(
+                    /\s*CR\s*/g,
+                    ""
+                  )
+                  .replace(
+                    /₹/g,
+                    ""
+                  )
+                  .trim()
               );
 
             if (
               Number.isNaN(
-                basePrice
+                suppliedBasePrice
               ) ||
-              basePrice <=
+              suppliedBasePrice <=
                 0
             ) {
+              skipped++;
               continue;
             }
+
+            const category:
+              PlayerCategory =
+                categoryRaw
+                  ?.trim()
+                  .toUpperCase() ===
+                "MARQUEE"
+                  ? "MARQUEE"
+                  : categoryRaw
+                      ?.trim()
+                      .toUpperCase() ===
+                    "GOLD"
+                  ? "GOLD"
+                  : "SILVER";
+
+            const stats: PlayerStats = {
+              matches: Number(matchesRaw ?? 0) || 0,
+              runs: Number(runsRaw ?? 0) || 0,
+              battingAverage:
+                Number(battingAverageRaw ?? 0) || 0,
+              strikeRate:
+                Number(strikeRateRaw ?? 0) || 0,
+              wickets: Number(wicketsRaw ?? 0) || 0,
+              economyRate:
+                Number(economyRateRaw ?? 0) || 0,
+            };
 
             await insertAuctionPlayer(
               {
@@ -1621,12 +2088,18 @@ function App() {
 
                 role,
 
-                basePrice,
+                basePrice:
+                  getCategoryBasePrice(
+                    category
+                  ),
               },
 
               auctionPlayers.length +
                 imported +
-                1
+                1,
+              activeDivision,
+              category,
+              stats
             );
 
             imported++;
@@ -1635,7 +2108,11 @@ function App() {
           await refreshData();
 
           alert(
-            `${imported} players imported.`
+            `${imported} players imported.${
+              skipped > 0
+                ? ` ${skipped} rows skipped.`
+                : ""
+            }`
           );
 
           event.target.value =
@@ -1665,6 +2142,18 @@ function App() {
   /* =====================================================
      BID CONTROLS
   ===================================================== */
+
+  const currentPlayerCategory =
+    currentPlayer
+      ? getPlayerCategory(
+          currentPlayer
+        )
+      : "SILVER";
+
+  const currentBidIncrement =
+    getCategoryBidIncrement(
+      currentPlayerCategory
+    );
 
   const changeBid =
     async (
@@ -1712,9 +2201,21 @@ function App() {
         );
       }
 
+      const isBidIncrease =
+        finalBid >
+        currentBid;
+
+      const nextTimerStatus =
+        isBidIncrease
+          ? "RUNNING"
+          : timerStatus;
+
+      const shouldResetRunningTimer =
+        nextTimerStatus ===
+        "RUNNING";
+
       const resetEndsAt =
-        timerStatus ===
-        "RUNNING"
+        shouldResetRunningTimer
           ? new Date(
               Date.now() +
                 timerDuration *
@@ -1722,27 +2223,32 @@ function App() {
             ).toISOString()
           : null;
 
-      const resetPausedRemaining =
-        timerStatus ===
+      const nextPausedRemaining =
+        nextTimerStatus ===
         "PAUSED"
           ? timerDuration
           : null;
 
       if (
-        timerStatus ===
-        "RUNNING"
+        shouldResetRunningTimer
       ) {
+        setTimerStatus(
+          "RUNNING"
+        );
+
         setTimerEndsAt(
           resetEndsAt
+        );
+
+        setTimerPausedRemaining(
+          null
         );
 
         setTimerRemaining(
           timerDuration
         );
-      }
-
-      if (
-        timerStatus ===
+      } else if (
+        nextTimerStatus ===
         "PAUSED"
       ) {
         setTimerPausedRemaining(
@@ -1770,23 +2276,25 @@ function App() {
 
           timerDuration,
 
-          timerStatus,
+          timerStatus:
+            nextTimerStatus,
 
           timerEndsAt:
-            timerStatus ===
+            nextTimerStatus ===
             "RUNNING"
               ? resetEndsAt
               : timerEndsAt,
 
           timerPausedRemaining:
-            timerStatus ===
+            nextTimerStatus ===
             "PAUSED"
-              ? resetPausedRemaining
-              : timerPausedRemaining,
+              ? nextPausedRemaining
+              : null,
 
           callState:
             "BIDDING",
-        });
+        },
+          activeDivision);
       } catch (
         error
       ) {
@@ -1844,7 +2352,8 @@ function App() {
           timerPausedRemaining,
 
           callState,
-        });
+        },
+          activeDivision);
       } catch (
         error
       ) {
@@ -1859,15 +2368,145 @@ function App() {
   ===================================================== */
 
   const moveToNextPlayer =
-    async () => {
+    async (
+      completedStatus:
+        | "SOLD"
+        | "UNSOLD"
+    ) => {
+      /*
+        Include the action that has just completed because
+        refreshData() runs after this function.
+      */
+      const effectiveHistory =
+        currentPlayer
+          ? [
+              ...history,
+              {
+                id:
+                  Date.now(),
+
+                playerId:
+                  currentPlayer.id,
+
+                playerName:
+                  currentPlayer.name,
+
+                status:
+                  completedStatus,
+              },
+            ]
+          : history;
+
+      /*
+        ROUND 1
+        Pick randomly from players who have never been
+        processed in the auction.
+      */
+      const firstRoundPlayers =
+        auctionPlayers
+          .map(
+            (
+              player,
+              index
+            ) => ({
+              player,
+              index,
+            })
+          )
+          .filter(
+            ({
+              player,
+            }) =>
+              !effectiveHistory.some(
+                (entry) =>
+                  entry.playerId ===
+                  player.id
+              )
+          );
+
+      /*
+        ROUND 2 - UNSOLD RE-AUCTION
+        Starts only when Round 1 is complete.
+
+        A player qualifies when:
+        - never SOLD
+        - exactly one UNSOLD result exists
+
+        If the player is UNSOLD again, the count becomes 2
+        and the player will not return a third time.
+      */
+      const reauctionPlayers =
+        firstRoundPlayers.length ===
+        0
+          ? auctionPlayers
+              .map(
+                (
+                  player,
+                  index
+                ) => ({
+                  player,
+                  index,
+                })
+              )
+              .filter(
+                ({
+                  player,
+                }) => {
+                  const playerHistory =
+                    effectiveHistory.filter(
+                      (entry) =>
+                        entry.playerId ===
+                        player.id
+                    );
+
+                  const wasSold =
+                    playerHistory.some(
+                      (entry) =>
+                        entry.status ===
+                        "SOLD"
+                    );
+
+                  const unsoldCount =
+                    playerHistory.filter(
+                      (entry) =>
+                        entry.status ===
+                        "UNSOLD"
+                    ).length;
+
+                  return (
+                    !wasSold &&
+                    unsoldCount ===
+                      1
+                  );
+                }
+              )
+          : [];
+
+      const eligiblePlayers =
+        firstRoundPlayers.length >
+        0
+          ? firstRoundPlayers
+          : reauctionPlayers;
+
+      const randomSelection =
+        eligiblePlayers.length >
+        0
+          ? eligiblePlayers[
+              Math.floor(
+                Math.random() *
+                  eligiblePlayers.length
+              )
+            ]
+          : null;
+
       const nextIndex =
-        currentPlayerIndex +
-        1;
+        randomSelection
+          ?.index ??
+        auctionPlayers.length;
 
       const nextPlayer =
-        auctionPlayers[
-          nextIndex
-        ];
+        randomSelection
+          ?.player;
 
       const nextBid =
         nextPlayer
@@ -1897,7 +2536,8 @@ function App() {
 
         callState:
           "BIDDING",
-      });
+      },
+          activeDivision);
 
       setCurrentPlayerIndex(
         nextIndex
@@ -1963,7 +2603,7 @@ function App() {
               String(playerId);
 
           if (isSameEvent) {
-            await clearDisplayEvent();
+            await clearDisplayEvent(activeDivision);
           }
         } catch (error) {
           console.error(
@@ -1974,6 +2614,76 @@ function App() {
       })();
     }, delayMs);
   };
+
+  /* =====================================================
+     AUDIT LOGGER
+
+     Audit logging is intentionally non-blocking.
+     A failed audit write must never stop a live
+     SOLD / UNSOLD / UNDO / RESET action.
+  ===================================================== */
+
+  const recordAuditEvent =
+    async (
+      action: string,
+      data: {
+        playerId?: number | null;
+        playerName?: string | null;
+        teamId?: number | null;
+        teamName?: string | null;
+        amount?: number | null;
+        details?: Record<string, unknown>;
+      } = {}
+    ) => {
+      try {
+        const {
+          error,
+        } =
+          await supabase.rpc(
+            "log_auction_audit",
+            {
+              p_action:
+                action,
+
+              p_player_id:
+                data.playerId ??
+                null,
+
+              p_player_name:
+                data.playerName ??
+                null,
+
+              p_team_id:
+                data.teamId ??
+                null,
+
+              p_team_name:
+                data.teamName ??
+                null,
+
+              p_amount:
+                data.amount ??
+                null,
+
+              p_details:
+                data.details ??
+                {},
+
+              p_division:
+                activeDivision,
+            }
+          );
+
+        if (error) {
+          throw error;
+        }
+      } catch (error) {
+        console.error(
+          "Unable to write audit log.",
+          error
+        );
+      }
+    };
 
   /* =====================================================
      SOLD
@@ -2034,6 +2744,72 @@ function App() {
           soldPlayer,
           winningTeam,
           soldPrice
+        ,
+          activeDivision);
+
+        /*
+          Update local history immediately so the
+          UNSOLD RE-AUCTION counter drops as soon
+          as the player is SOLD. refreshData()
+          will replace this with the canonical DB
+          history a moment later.
+        */
+        setHistory(
+          (
+            currentHistory
+          ) => [
+            ...currentHistory,
+            {
+              id:
+                Date.now(),
+
+              playerId:
+                soldPlayer.id,
+
+              playerName:
+                soldPlayer.name,
+
+              status:
+                "SOLD",
+
+              teamId:
+                winningTeam.id,
+
+              teamName:
+                winningTeam.name,
+
+              price:
+                soldPrice,
+
+              createdAt:
+                new Date().toISOString(),
+            },
+          ]
+        );
+
+        void recordAuditEvent(
+          "SOLD",
+          {
+            playerId:
+              soldPlayer.id,
+
+            playerName:
+              soldPlayer.name,
+
+            teamId:
+              winningTeam.id,
+
+            teamName:
+              winningTeam.name,
+
+            amount:
+              soldPrice,
+
+            details: {
+              summary:
+                `${soldPlayer.name} sold to ${winningTeam.name} for ₹${soldPrice.toFixed(2)} Cr`,
+            },
+          }
         );
 
         /*
@@ -2046,7 +2822,8 @@ function App() {
           soldPlayer,
           winningTeam,
           soldPrice
-        );
+        ,
+          activeDivision);
 
         scheduleDisplayEventClear(
           "SOLD",
@@ -2054,7 +2831,9 @@ function App() {
           4000
         );
 
-        await moveToNextPlayer();
+        await moveToNextPlayer(
+          "SOLD"
+        );
 
         await refreshData();
       } catch (error) {
@@ -2088,6 +2867,53 @@ function App() {
 
         await markPlayerUnsold(
           unsoldPlayer
+        ,
+          activeDivision);
+
+        /*
+          Update local history immediately.
+          If this is the player's second UNSOLD
+          attempt, the re-auction counter will
+          reduce straight away.
+        */
+        setHistory(
+          (
+            currentHistory
+          ) => [
+            ...currentHistory,
+            {
+              id:
+                Date.now(),
+
+              playerId:
+                unsoldPlayer.id,
+
+              playerName:
+                unsoldPlayer.name,
+
+              status:
+                "UNSOLD",
+
+              createdAt:
+                new Date().toISOString(),
+            },
+          ]
+        );
+
+        void recordAuditEvent(
+          "UNSOLD",
+          {
+            playerId:
+              unsoldPlayer.id,
+
+            playerName:
+              unsoldPlayer.name,
+
+            details: {
+              summary:
+                `${unsoldPlayer.name} marked UNSOLD`,
+            },
+          }
         );
 
         /*
@@ -2098,7 +2924,8 @@ function App() {
 
         await triggerUnsoldDisplayEvent(
           unsoldPlayer
-        );
+        ,
+          activeDivision);
 
         scheduleDisplayEventClear(
           "UNSOLD",
@@ -2106,7 +2933,9 @@ function App() {
           3000
         );
 
-        await moveToNextPlayer();
+        await moveToNextPlayer(
+          "UNSOLD"
+        );
 
         await refreshData();
       } catch (error) {
@@ -2144,14 +2973,64 @@ function App() {
           true
         );
 
-        await undoLastDatabaseAction();
+        const actionBeingUndone =
+          history[
+            history.length -
+              1
+          ] ??
+          null;
+
+        await undoLastDatabaseAction(activeDivision);
+
+        if (
+          actionBeingUndone
+        ) {
+          void recordAuditEvent(
+            "UNDO",
+            {
+              playerId:
+                actionBeingUndone.playerId,
+
+              playerName:
+                actionBeingUndone.playerName,
+
+              teamId:
+                actionBeingUndone.teamId ??
+                null,
+
+              teamName:
+                actionBeingUndone.teamName ??
+                null,
+
+              amount:
+                actionBeingUndone.price ??
+                null,
+
+              details: {
+                summary:
+                  `Undid ${actionBeingUndone.status} action for ${actionBeingUndone.playerName}`,
+
+                previousStatus:
+                  actionBeingUndone.status,
+              },
+            }
+          );
+        }
 
         const previousIndex =
-          Math.max(
-            0,
-            currentPlayerIndex -
-              1
-          );
+          actionBeingUndone
+            ? Math.max(
+                0,
+                auctionPlayers.findIndex(
+                  (player) =>
+                    player.id ===
+                    actionBeingUndone.playerId
+                )
+              )
+            : Math.max(
+                0,
+                currentPlayerIndex
+              );
 
         const previousPlayer =
           auctionPlayers[
@@ -2183,7 +3062,8 @@ function App() {
 
           callState:
             "BIDDING",
-        });
+        },
+          activeDivision);
 
         setTimerStatus(
           "STOPPED"
@@ -2238,10 +3118,41 @@ function App() {
           true
         );
 
+        const resetSummary = {
+          purchaseCount:
+            teams.reduce(
+              (
+                total,
+                team
+              ) =>
+                total +
+                team.players.length,
+              0
+            ),
+
+          historyCount:
+            history.length,
+
+          currentPlayerIndex,
+        };
+
         await resetDatabaseAuction(
           auctionPlayers[0]
             ?.basePrice ??
             0
+        ,
+          activeDivision);
+
+        void recordAuditEvent(
+          "RESET",
+          {
+            details: {
+              summary:
+                "Auction purchases and history were reset.",
+
+              ...resetSummary,
+            },
+          }
         );
 
         await refreshData();
@@ -2343,7 +3254,7 @@ function App() {
         ) {
           void changeBid(
             currentBid +
-              0.25
+              currentBidIncrement
           );
           return;
         }
@@ -2354,7 +3265,7 @@ function App() {
         ) {
           void changeBid(
             currentBid +
-              0.5
+              currentBidIncrement
           );
           return;
         }
@@ -2365,7 +3276,7 @@ function App() {
         ) {
           void changeBid(
             currentBid +
-              1
+              currentBidIncrement
           );
           return;
         }
@@ -2376,7 +3287,7 @@ function App() {
         ) {
           void changeBid(
             currentBid -
-              0.25
+              currentBidIncrement
           );
           return;
         }
@@ -2548,6 +3459,125 @@ function App() {
   }
 
   /* =====================================================
+     PRE-AUCTION HEALTH CHECK
+  ===================================================== */
+
+  if (
+    screen ===
+    "health"
+  ) {
+    return (
+      <PreAuctionHealth
+        division={
+          activeDivision
+        }
+        onBack={() =>
+          setScreen(
+            "board"
+          )
+        }
+      />
+    );
+  }
+
+  /* =====================================================
+     RESULTS EXPORT
+  ===================================================== */
+
+  if (
+    screen ===
+    "exports"
+  ) {
+    return (
+      <AuctionExports
+        division={
+          activeDivision
+        }
+        onBack={() =>
+          setScreen(
+            "board"
+          )
+        }
+      />
+    );
+  }
+
+  /* =====================================================
+     LIVE AUCTION SUMMARY
+  ===================================================== */
+
+  if (
+    screen ===
+    "summary"
+  ) {
+    return (
+      <AuctionSummary
+        division={
+          activeDivision
+        }
+        onBack={() =>
+          setScreen(
+            "board"
+          )
+        }
+      />
+    );
+  }
+
+  /* =====================================================
+     AUDIT LOG
+  ===================================================== */
+
+  if (
+    screen ===
+    "audit"
+  ) {
+    return (
+      <AuctionAudit
+        division={
+          activeDivision
+        }
+        onBack={() =>
+          setScreen(
+            "board"
+          )
+        }
+      />
+    );
+  }
+
+  /* =====================================================
+     BACKUP & RECOVERY
+  ===================================================== */
+
+  if (
+    screen ===
+    "recovery"
+  ) {
+    return (
+      <AuctionRecovery
+        division={
+          activeDivision
+        }
+        onBack={() =>
+          setScreen(
+            "board"
+          )
+        }
+        onRecovered={async () => {
+          await refreshData(
+            true
+          );
+
+          setScreen(
+            "control"
+          );
+        }}
+      />
+    );
+  }
+
+  /* =====================================================
      USER MANAGEMENT
   ===================================================== */
 
@@ -2605,6 +3635,17 @@ function App() {
             <h1>
               TEAM MANAGER
             </h1>
+
+            <div
+              className={`division-screen-badge ${activeDivision.toLowerCase()}`}
+            >
+              {
+                activeDivision ===
+                "MEN"
+                  ? "MEN'S AUCTION"
+                  : "WOMEN'S AUCTION"
+              }
+            </div>
 
             <p>
               Logos are now stored in Supabase Storage
@@ -2717,6 +3758,129 @@ function App() {
           </section>
 
           <section className="player-manager-card">
+            <p className="eyebrow">
+              {
+                activeDivision ===
+                "MEN"
+                  ? "MEN'S FRANCHISES"
+                  : "WOMEN'S FRANCHISES"
+              }
+            </p>
+
+            <h2>
+              Add Team
+            </h2>
+
+            <div className="settings-grid division-team-form">
+              <div>
+                <label>
+                  TEAM NAME
+                </label>
+
+                <input
+                  value={
+                    newTeamName
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNewTeamName(
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label>
+                  SHORT CODE
+                </label>
+
+                <input
+                  value={
+                    newTeamShortName
+                  }
+                  maxLength={
+                    4
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNewTeamShortName(
+                      event.target.value.toUpperCase()
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label>
+                  OWNER
+                </label>
+
+                <input
+                  value={
+                    newTeamOwner
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNewTeamOwner(
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div>
+                <label>
+                  STARTING PURSE (CR)
+                </label>
+
+                <input
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  value={
+                    newTeamPurse
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setNewTeamPurse(
+                      Number(
+                        event.target.value
+                      ) ||
+                        0
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <button
+              className="add-player-button"
+              style={{
+                marginTop:
+                  "20px",
+              }}
+              disabled={
+                saving
+              }
+              onClick={() =>
+                void addTeam()
+              }
+            >
+              ADD {
+                activeDivision ===
+                "MEN"
+                  ? "MEN'S"
+                  : "WOMEN'S"
+              } TEAM
+            </button>
+          </section>
+
+          <section className="player-manager-card">
             <div className="history-header">
               <div>
                 <p className="eyebrow">
@@ -2724,7 +3888,12 @@ function App() {
                 </p>
 
                 <h2>
-                  Teams
+                  {
+                    activeDivision ===
+                    "MEN"
+                      ? "Men's Teams"
+                      : "Women's Teams"
+                  }
                 </h2>
               </div>
 
@@ -2980,6 +4149,17 @@ function App() {
               PLAYER MANAGER
             </h1>
 
+            <div
+              className={`division-screen-badge ${activeDivision.toLowerCase()}`}
+            >
+              {
+                activeDivision ===
+                "MEN"
+                  ? "MEN'S AUCTION"
+                  : "WOMEN'S AUCTION"
+              }
+            </div>
+
             <p>
               Player photos now upload to Supabase Storage
             </p>
@@ -3051,28 +4231,158 @@ function App() {
 
               <div>
                 <label>
+                  PLAYER CATEGORY
+                </label>
+
+                <select
+                  value={
+                    playerCategory
+                  }
+                  onChange={(
+                    event
+                  ) => {
+                    const nextCategory =
+                      event
+                        .target
+                        .value as PlayerCategory;
+
+                    setPlayerCategory(
+                      nextCategory
+                    );
+
+                    setPlayerBasePrice(
+                      getCategoryBasePrice(
+                        nextCategory
+                      )
+                    );
+                  }}
+                >
+                  <option value="MARQUEE">
+                    Marquee Player
+                  </option>
+
+                  <option value="GOLD">
+                    Gold Player
+                  </option>
+
+                  <option value="SILVER">
+                    Silver Player
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label>
                   BASE PRICE
                 </label>
 
                 <input
                   type="number"
-                  min="0.25"
-                  step="0.25"
                   value={
                     playerBasePrice
                   }
-                  onChange={(
-                    event
-                  ) =>
-                    setPlayerBasePrice(
-                      Number(
-                        event
-                          .target
-                          .value
-                      )
-                    )
-                  }
+                  readOnly
+                  title="Base price is automatically set by player category."
                 />
+
+                <small>
+                  Auto-set by category
+                </small>
+              </div>
+
+              <div className="player-stats-entry-grid">
+                <div>
+                  <label>MATCHES</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={playerStats.matches}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        matches: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>RUNS</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={playerStats.runs}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        runs: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>BATTING AVG</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={playerStats.battingAverage}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        battingAverage: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>STRIKE RATE</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={playerStats.strikeRate}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        strikeRate: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>WICKETS</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={playerStats.wickets}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        wickets: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label>ECONOMY</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={playerStats.economyRate}
+                    onChange={(event) =>
+                      setPlayerStats((current) => ({
+                        ...current,
+                        economyRate: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </div>
               </div>
 
               <div>
@@ -3227,6 +4537,100 @@ function App() {
                       </span>
                     </div>
 
+                    <div className={`player-category-pill ${getPlayerCategory(player).toLowerCase()}`}>
+                      {
+                        getPlayerCategory(
+                          player
+                        ) === "MARQUEE"
+                          ? "MARQUEE"
+                          : getPlayerCategory(
+                              player
+                            ) === "GOLD"
+                          ? "GOLD"
+                          : "SILVER"
+                      }
+                    </div>
+
+                    <select
+                      className="player-category-select"
+                      value={
+                        getPlayerCategory(
+                          player
+                        )
+                      }
+                      disabled={
+                        saving
+                      }
+                      onChange={async (
+                        event
+                      ) => {
+                        try {
+                          setSaving(
+                            true
+                          );
+
+                          await updateAuctionPlayerCategory(
+                            player.id,
+                            event.target.value as PlayerCategory,
+                            activeDivision
+                          );
+
+                          await refreshData();
+                        } catch (
+                          error
+                        ) {
+                          console.error(
+                            error
+                          );
+
+                          alert(
+                            "Unable to update player category."
+                          );
+                        } finally {
+                          setSaving(
+                            false
+                          );
+                        }
+                      }}
+                    >
+                      <option value="MARQUEE">
+                        Marquee
+                      </option>
+
+                      <option value="GOLD">
+                        Gold
+                      </option>
+
+                      <option value="SILVER">
+                        Silver
+                      </option>
+                    </select>
+
+                    <div className="player-admin-stats">
+                      <span>
+                        M {getPlayerStats(player).matches}
+                      </span>
+                      <span>
+                        R {getPlayerStats(player).runs}
+                      </span>
+                      <span>
+                        W {getPlayerStats(player).wickets}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="edit-stats-button"
+                      disabled={saving}
+                      onClick={() =>
+                        openStatsEditor(
+                          player
+                        )
+                      }
+                    >
+                      EDIT STATS
+                    </button>
+
                     <div className="player-admin-price">
                       ₹
                       {player.basePrice.toFixed(
@@ -3254,10 +4658,136 @@ function App() {
               )}
             </div>
           </section>
-        </main>
+                  {statsEditorPlayerId !== null && (
+            <div className="stats-modal-backdrop">
+              <div className="stats-modal">
+                <div className="stats-modal-header">
+                  <div>
+                    <p className="eyebrow">
+                      PLAYER PERFORMANCE
+                    </p>
+                    <h2>Edit Stats</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStatsEditorPlayerId(
+                        null
+                      )
+                    }
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="stats-modal-grid">
+                  {[
+                    ["matches", "Matches", 1],
+                    ["runs", "Runs", 1],
+                    ["battingAverage", "Batting Average", 0.01],
+                    ["strikeRate", "Strike Rate", 0.01],
+                    ["wickets", "Wickets", 1],
+                    ["economyRate", "Economy Rate", 0.01],
+                  ].map(([key, label, step]) => (
+                    <label key={key}>
+                      <span>{label}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step={step}
+                        value={
+                          editPlayerStats[
+                            key as keyof PlayerStats
+                          ]
+                        }
+                        onChange={(event) =>
+                          setEditPlayerStats((current) => ({
+                            ...current,
+                            [key]: Number(event.target.value),
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="stats-modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-action"
+                    onClick={() =>
+                      setStatsEditorPlayerId(
+                        null
+                      )
+                    }
+                  >
+                    CANCEL
+                  </button>
+
+                  <button
+                    type="button"
+                    className="add-player-button"
+                    disabled={saving}
+                    onClick={() =>
+                      void saveEditedStats()
+                    }
+                  >
+                    {saving
+                      ? "SAVING..."
+                      : "SAVE STATS"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+</main>
       </div>
     );
   }
+
+  const firstRoundComplete =
+    auctionPlayers.length >
+      0 &&
+    auctionPlayers.every(
+      (player) =>
+        history.some(
+          (entry) =>
+            entry.playerId ===
+            player.id
+        )
+    );
+
+  const unsoldReauctionRemaining =
+    auctionPlayers.filter(
+      (player) => {
+        const playerHistory =
+          history.filter(
+            (entry) =>
+              entry.playerId ===
+              player.id
+          );
+
+        const wasSold =
+          playerHistory.some(
+            (entry) =>
+              entry.status ===
+              "SOLD"
+          );
+
+        const unsoldCount =
+          playerHistory.filter(
+            (entry) =>
+              entry.status ===
+              "UNSOLD"
+          ).length;
+
+        return (
+          !wasSold &&
+          unsoldCount === 1
+        );
+      }
+    ).length;
 
   /* =====================================================
      AUCTION CONTROL
@@ -3307,7 +4837,12 @@ function App() {
             </p>
 
             <h1>
-              AUCTION CONTROL ROOM
+              {
+                activeDivision ===
+                  "MEN"
+                  ? "MEN'S AUCTION CONTROL ROOM"
+                  : "WOMEN'S AUCTION CONTROL ROOM"
+              }
             </h1>
 
             <p>
@@ -3324,11 +4859,67 @@ function App() {
             </p>
           </section>
 
+          {firstRoundComplete &&
+            unsoldReauctionRemaining >
+              0 && (
+              <div
+                style={{
+                  margin:
+                    "0 auto 18px",
+                  width:
+                    "min(100%, 980px)",
+                  padding:
+                    "10px 16px",
+                  borderRadius:
+                    "12px",
+                  border:
+                    "1px solid rgba(245, 158, 11, 0.35)",
+                  background:
+                    "rgba(245, 158, 11, 0.10)",
+                  textAlign:
+                    "center",
+                  fontWeight:
+                    900,
+                  letterSpacing:
+                    "0.06em",
+                }}
+              >
+                UNSOLD RE-AUCTION ROUND •{" "}
+                {
+                  unsoldReauctionRemaining
+                }{" "}
+                PLAYER
+                {
+                  unsoldReauctionRemaining ===
+                  1
+                    ? ""
+                    : "S"
+                }{" "}
+                REMAINING
+              </div>
+            )}
+
           {currentPlayer ? (
             <>
-              <section className="current-player-panel">
+              <section
+                className={`current-player-panel player-category-bg ${getPlayerCategory(currentPlayer).toLowerCase()}`}
+              >
                 <div className="current-player-label">
                   CURRENT PLAYER
+                </div>
+
+                <div className={`player-category-badge ${getPlayerCategory(currentPlayer).toLowerCase()}`}>
+                  {
+                    getPlayerCategory(
+                      currentPlayer
+                    ) === "MARQUEE"
+                      ? "MARQUEE PLAYER"
+                      : getPlayerCategory(
+                          currentPlayer
+                        ) === "GOLD"
+                      ? "GOLD PLAYER"
+                      : "SILVER PLAYER"
+                  }
                 </div>
 
                 <div
@@ -3366,6 +4957,33 @@ function App() {
                   }
                 </span>
 
+                <div className="player-stats-grid">
+                  <div>
+                    <span>MATCHES</span>
+                    <strong>{getPlayerStats(currentPlayer).matches}</strong>
+                  </div>
+                  <div>
+                    <span>RUNS</span>
+                    <strong>{getPlayerStats(currentPlayer).runs}</strong>
+                  </div>
+                  <div>
+                    <span>BAT AVG</span>
+                    <strong>{getPlayerStats(currentPlayer).battingAverage.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>STRIKE RATE</span>
+                    <strong>{getPlayerStats(currentPlayer).strikeRate.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>WICKETS</span>
+                    <strong>{getPlayerStats(currentPlayer).wickets}</strong>
+                  </div>
+                  <div>
+                    <span>ECONOMY</span>
+                    <strong>{getPlayerStats(currentPlayer).economyRate.toFixed(2)}</strong>
+                  </div>
+                </div>
+
                 <div className="base-price">
                   BASE PRICE
 
@@ -3385,11 +5003,7 @@ function App() {
                 </span>
 
                 <strong>
-                  {auctionPlayers[
-                    currentPlayerIndex +
-                      1
-                  ]?.name ??
-                    "End of Auction"}
+                  RANDOM SELECTION
                 </strong>
               </section>
 
@@ -3574,11 +5188,15 @@ function App() {
                     onClick={() =>
                       void changeBid(
                         currentBid -
-                          0.25
+                          currentBidIncrement
                       )
                     }
                   >
-                    - ₹25L
+                    - ₹
+                    {currentBidIncrement.toFixed(
+                      1
+                    )}{" "}
+                    Cr
                   </button>
 
                   <button
@@ -3586,36 +5204,33 @@ function App() {
                     onClick={() =>
                       void changeBid(
                         currentBid +
-                          0.25
+                          currentBidIncrement
                       )
                     }
                   >
-                    + ₹25L
+                    + ₹
+                    {currentBidIncrement.toFixed(
+                      1
+                    )}{" "}
+                    Cr
                   </button>
+                </div>
 
-                  <button
-                    className="bid-button"
-                    onClick={() =>
-                      void changeBid(
-                        currentBid +
-                          0.5
-                      )
-                    }
-                  >
-                    + ₹50L
-                  </button>
-
-                  <button
-                    className="bid-button"
-                    onClick={() =>
-                      void changeBid(
-                        currentBid +
-                          1
-                      )
-                    }
-                  >
-                    + ₹1 Cr
-                  </button>
+                <div className="bid-increment-note">
+                  {
+                    currentPlayerCategory ===
+                    "MARQUEE"
+                      ? "Marquee"
+                      : currentPlayerCategory ===
+                        "GOLD"
+                      ? "Gold"
+                      : "Silver"
+                  }{" "}
+                  Player • Bid Increment ₹
+                  {currentBidIncrement.toFixed(
+                    1
+                  )}{" "}
+                  Cr
                 </div>
               </section>
 
@@ -3946,6 +5561,304 @@ function App() {
   }
 
   /* =====================================================
+     PLAYER TRANSFER / SWAP
+  ===================================================== */
+
+  const handlePlayerTransfer =
+    async () => {
+      if (
+        !selectedTeam ||
+        transferPlayerId ===
+          null ||
+        transferTargetTeamId ===
+          null
+      ) {
+        setTransferMessage(
+          "Select the player and destination team."
+        );
+
+        return;
+      }
+
+      const sourcePlayer =
+        selectedTeam.players.find(
+          (player) =>
+            player.id ===
+            transferPlayerId
+        );
+
+      const targetTeam =
+        teams.find(
+          (team) =>
+            team.id ===
+            transferTargetTeamId
+        );
+
+      if (
+        !sourcePlayer ||
+        !targetTeam
+      ) {
+        setTransferMessage(
+          "Unable to find the selected player or team."
+        );
+
+        return;
+      }
+
+      if (
+        selectedTeam.id ===
+        targetTeam.id
+      ) {
+        setTransferMessage(
+          "Source and destination teams must be different."
+        );
+
+        return;
+      }
+
+      let targetSwapPlayer:
+        (typeof targetTeam.players)[number] |
+        undefined;
+
+      if (
+        transferMode ===
+        "SWAP"
+      ) {
+        if (
+          swapPlayerId ===
+          null
+        ) {
+          setTransferMessage(
+            "Select a player from the destination team to swap."
+          );
+
+          return;
+        }
+
+        targetSwapPlayer =
+          targetTeam.players.find(
+            (player) =>
+              player.id ===
+              swapPlayerId
+          );
+
+        if (
+          !targetSwapPlayer
+        ) {
+          setTransferMessage(
+            "The destination player could not be found."
+          );
+
+          return;
+        }
+      }
+
+      const sourceRemaining =
+        calculateRemaining(
+          selectedTeam
+        );
+
+      const targetRemaining =
+        calculateRemaining(
+          targetTeam
+        );
+
+      if (
+        transferMode ===
+        "TRANSFER"
+      ) {
+        if (
+          targetTeam.players
+            .length >=
+          settings.squadLimit
+        ) {
+          setTransferMessage(
+            `${targetTeam.name} has already reached the squad limit.`
+          );
+
+          return;
+        }
+
+        if (
+          targetRemaining <
+          sourcePlayer.purchasePrice
+        ) {
+          setTransferMessage(
+            `${targetTeam.name} does not have enough purse for this transfer.`
+          );
+
+          return;
+        }
+      } else if (
+        targetSwapPlayer
+      ) {
+        const sourceRemainingAfterSwap =
+          sourceRemaining +
+          sourcePlayer.purchasePrice -
+          targetSwapPlayer.purchasePrice;
+
+        const targetRemainingAfterSwap =
+          targetRemaining +
+          targetSwapPlayer.purchasePrice -
+          sourcePlayer.purchasePrice;
+
+        if (
+          sourceRemainingAfterSwap <
+            0 ||
+          targetRemainingAfterSwap <
+            0
+        ) {
+          setTransferMessage(
+            "This swap would make one of the team purses negative."
+          );
+
+          return;
+        }
+      }
+
+      const actionText =
+        transferMode ===
+        "SWAP" &&
+        targetSwapPlayer
+          ? `Swap ${sourcePlayer.name} (${selectedTeam.name}) with ${targetSwapPlayer.name} (${targetTeam.name})?`
+          : `Transfer ${sourcePlayer.name} from ${selectedTeam.name} to ${targetTeam.name} for the original purchase price of ₹${sourcePlayer.purchasePrice.toFixed(
+              2
+            )} Cr?`;
+
+      if (
+        !window.confirm(
+          actionText
+        )
+      ) {
+        return;
+      }
+
+      try {
+        setSaving(
+          true
+        );
+
+        setTransferMessage(
+          ""
+        );
+
+        await transferOrSwapPurchasedPlayer(
+          {
+            division:
+              activeDivision,
+
+            playerId:
+              sourcePlayer.id,
+
+            fromTeamId:
+              selectedTeam.id,
+
+            toTeamId:
+              targetTeam.id,
+
+            swapPlayerId:
+              transferMode ===
+              "SWAP"
+                ? targetSwapPlayer
+                    ?.id ??
+                  null
+                : null,
+          }
+        );
+
+        void recordAuditEvent(
+          transferMode ===
+            "SWAP"
+            ? "PLAYER_SWAP"
+            : "PLAYER_TRANSFER",
+          {
+            playerId:
+              sourcePlayer.id,
+
+            playerName:
+              sourcePlayer.name,
+
+            teamId:
+              targetTeam.id,
+
+            teamName:
+              targetTeam.name,
+
+            amount:
+              sourcePlayer.purchasePrice,
+
+            details: {
+              mode:
+                transferMode,
+
+              fromTeamId:
+                selectedTeam.id,
+
+              fromTeamName:
+                selectedTeam.name,
+
+              toTeamId:
+                targetTeam.id,
+
+              toTeamName:
+                targetTeam.name,
+
+              swapPlayerId:
+                targetSwapPlayer
+                  ?.id ??
+                null,
+
+              swapPlayerName:
+                targetSwapPlayer
+                  ?.name ??
+                null,
+            },
+          }
+        );
+
+        await refreshData(
+          true
+        );
+
+        setTransferPlayerId(
+          null
+        );
+
+        setTransferTargetTeamId(
+          null
+        );
+
+        setSwapPlayerId(
+          null
+        );
+
+        setTransferMessage(
+          transferMode ===
+            "SWAP"
+            ? "Players swapped successfully."
+            : "Player transferred successfully."
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          error
+        );
+
+        setTransferMessage(
+          error instanceof
+            Error
+            ? error.message
+            : "Unable to complete the player transfer."
+        );
+      } finally {
+        setSaving(
+          false
+        );
+      }
+    };
+
+  /* =====================================================
      TEAM PAGE
   ===================================================== */
 
@@ -3963,6 +5876,14 @@ function App() {
       calculateRemaining(
         selectedTeam
       );
+
+    const transferTargetTeam =
+      teams.find(
+        (team) =>
+          team.id ===
+          transferTargetTeamId
+      ) ??
+      null;
 
     return (
       <div className="app">
@@ -4094,6 +6015,330 @@ function App() {
                 )}
               </strong>
             </div>
+          </section>
+
+          <section className="player-transfer-card">
+            <div className="player-transfer-heading">
+              <div>
+                <p className="eyebrow">
+                  TEAM MANAGEMENT
+                </p>
+
+                <h2>
+                  Player Transfer / Swap
+                </h2>
+              </div>
+
+              <span className="transfer-source-team">
+                FROM: {
+                  selectedTeam.shortName
+                }
+              </span>
+            </div>
+
+            <div className="player-transfer-mode">
+              <button
+                type="button"
+                className={
+                  transferMode ===
+                  "TRANSFER"
+                    ? "active"
+                    : ""
+                }
+                onClick={() => {
+                  setTransferMode(
+                    "TRANSFER"
+                  );
+
+                  setSwapPlayerId(
+                    null
+                  );
+
+                  setTransferMessage(
+                    ""
+                  );
+                }}
+              >
+                TRANSFER PLAYER
+              </button>
+
+              <button
+                type="button"
+                className={
+                  transferMode ===
+                  "SWAP"
+                    ? "active"
+                    : ""
+                }
+                onClick={() => {
+                  setTransferMode(
+                    "SWAP"
+                  );
+
+                  setTransferMessage(
+                    ""
+                  );
+                }}
+              >
+                SWAP PLAYERS
+              </button>
+            </div>
+
+            <div className="player-transfer-grid">
+              <div>
+                <label>
+                  {
+                    transferMode ===
+                    "SWAP"
+                      ? "PLAYER FROM THIS TEAM"
+                      : "PLAYER TO TRANSFER"
+                  }
+                </label>
+
+                <select
+                  value={
+                    transferPlayerId ??
+                    ""
+                  }
+                  onChange={(
+                    event
+                  ) => {
+                    setTransferPlayerId(
+                      event.target
+                        .value
+                        ? Number(
+                            event
+                              .target
+                              .value
+                          )
+                        : null
+                    );
+
+                    setTransferMessage(
+                      ""
+                    );
+                  }}
+                >
+                  <option value="">
+                    Select player
+                  </option>
+
+                  {selectedTeam.players.map(
+                    (
+                      player
+                    ) => (
+                      <option
+                        key={
+                          player.id
+                        }
+                        value={
+                          player.id
+                        }
+                      >
+                        {
+                          player.name
+                        }{" "}
+                        — ₹
+                        {player.purchasePrice.toFixed(
+                          2
+                        )}{" "}
+                        Cr
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label>
+                  DESTINATION TEAM
+                </label>
+
+                <select
+                  value={
+                    transferTargetTeamId ??
+                    ""
+                  }
+                  onChange={(
+                    event
+                  ) => {
+                    setTransferTargetTeamId(
+                      event.target
+                        .value
+                        ? Number(
+                            event
+                              .target
+                              .value
+                          )
+                        : null
+                    );
+
+                    setSwapPlayerId(
+                      null
+                    );
+
+                    setTransferMessage(
+                      ""
+                    );
+                  }}
+                >
+                  <option value="">
+                    Select team
+                  </option>
+
+                  {teams
+                    .filter(
+                      (
+                        team
+                      ) =>
+                        team.id !==
+                        selectedTeam.id
+                    )
+                    .map(
+                      (
+                        team
+                      ) => (
+                        <option
+                          key={
+                            team.id
+                          }
+                          value={
+                            team.id
+                          }
+                        >
+                          {
+                            team.name
+                          }{" "}
+                          — ₹
+                          {calculateRemaining(
+                            team
+                          ).toFixed(
+                            2
+                          )}{" "}
+                          Cr left
+                        </option>
+                      )
+                    )}
+                </select>
+              </div>
+
+              {transferMode ===
+                "SWAP" && (
+                <div>
+                  <label>
+                    PLAYER FROM DESTINATION TEAM
+                  </label>
+
+                  <select
+                    value={
+                      swapPlayerId ??
+                      ""
+                    }
+                    disabled={
+                      !transferTargetTeam
+                    }
+                    onChange={(
+                      event
+                    ) => {
+                      setSwapPlayerId(
+                        event.target
+                          .value
+                          ? Number(
+                              event
+                                .target
+                                .value
+                            )
+                          : null
+                      );
+
+                      setTransferMessage(
+                        ""
+                      );
+                    }}
+                  >
+                    <option value="">
+                      {
+                        transferTargetTeam
+                          ? "Select player to swap"
+                          : "Select destination team first"
+                      }
+                    </option>
+
+                    {transferTargetTeam
+                      ?.players.map(
+                        (
+                          player
+                        ) => (
+                          <option
+                            key={
+                              player.id
+                            }
+                            value={
+                              player.id
+                            }
+                          >
+                            {
+                              player.name
+                            }{" "}
+                            — ₹
+                            {player.purchasePrice.toFixed(
+                              2
+                            )}{" "}
+                            Cr
+                          </option>
+                        )
+                      )}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="player-transfer-footer">
+              <div className="player-transfer-note">
+                {transferMode ===
+                "TRANSFER"
+                  ? "The player keeps the original auction purchase price. The source team gets that purse back and the destination team spends the same amount."
+                  : "Both players keep their original auction purchase prices. Their teams are exchanged and both purses are recalculated automatically."}
+              </div>
+
+              <button
+                type="button"
+                className="player-transfer-submit"
+                disabled={
+                  saving ||
+                  transferPlayerId ===
+                    null ||
+                  transferTargetTeamId ===
+                    null ||
+                  (
+                    transferMode ===
+                      "SWAP" &&
+                    swapPlayerId ===
+                      null
+                  )
+                }
+                onClick={() =>
+                  void handlePlayerTransfer()
+                }
+              >
+                {
+                  saving
+                    ? "UPDATING..."
+                    : transferMode ===
+                      "SWAP"
+                      ? "SWAP PLAYERS"
+                      : "TRANSFER PLAYER"
+                }
+              </button>
+            </div>
+
+            {transferMessage && (
+              <div className="player-transfer-message">
+                {
+                  transferMessage
+                }
+              </div>
+            )}
           </section>
 
           <section className="squad-section">
@@ -4239,6 +6484,44 @@ function App() {
           • Team Purse & Squad Dashboard
         </p>
 
+        <div
+          className="auction-division-switch"
+          role="group"
+          aria-label="Auction division"
+        >
+          <button
+            className={
+              activeDivision ===
+              "MEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "MEN"
+              )
+            }
+          >
+            MEN'S AUCTION
+          </button>
+
+          <button
+            className={
+              activeDivision ===
+              "WOMEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "WOMEN"
+              )
+            }
+          >
+            WOMEN'S AUCTION
+          </button>
+        </div>
+
         <div className="main-admin-buttons">
           <button
             className="auction-control-button"
@@ -4283,6 +6566,61 @@ function App() {
           >
             USER MANAGEMENT
           </button>
+
+          <button
+            className="auction-control-button"
+            onClick={() =>
+              setScreen(
+                "recovery"
+              )
+            }
+          >
+            BACKUP & RECOVERY
+          </button>
+
+          <button
+            className="auction-control-button"
+            onClick={() =>
+              setScreen(
+                "audit"
+              )
+            }
+          >
+            AUDIT LOG
+          </button>
+
+          <button
+            className="auction-control-button"
+            onClick={() =>
+              setScreen(
+                "summary"
+              )
+            }
+          >
+            LIVE SUMMARY
+          </button>
+
+          <button
+            className="auction-control-button"
+            onClick={() =>
+              setScreen(
+                "exports"
+              )
+            }
+          >
+            RESULTS EXPORT
+          </button>
+
+          <button
+            className="auction-control-button"
+            onClick={() =>
+              setScreen(
+                "health"
+              )
+            }
+          >
+            PRE-AUCTION CHECK
+          </button>
         </div>
       </header>
 
@@ -4294,7 +6632,12 @@ function App() {
             </p>
 
             <h2>
-              Auction Board
+              {
+                activeDivision ===
+                "MEN"
+                  ? "Men's Auction Board"
+                  : "Women's Auction Board"
+              }
             </h2>
           </div>
 
@@ -4303,6 +6646,24 @@ function App() {
             REALTIME LIVE
           </div>
         </div>
+
+        {teams.length ===
+        0 && (
+          <div className="division-empty-state">
+            <strong>
+              No {
+                activeDivision ===
+                "MEN"
+                  ? "men's"
+                  : "women's"
+              } teams configured yet.
+            </strong>
+
+            <span>
+              Open Team Manager to add teams for this auction.
+            </span>
+          </div>
+        )}
 
         <div className="team-grid">
           {teams.map(

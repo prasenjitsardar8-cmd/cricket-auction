@@ -1,0 +1,177 @@
+/* =========================================================
+   PLAYER CATEGORY THEMES
+   MARQUEE / GOLD / SILVER
+========================================================= */
+
+.player-category-bg {
+  position: relative;
+  overflow: hidden;
+  transition:
+    background 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+.player-category-bg::before,
+.player-category-result::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.player-category-bg > *,
+.player-category-result > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* MARQUEE — premium spotlight */
+.player-category-bg.marquee,
+.player-category-result.marquee {
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 215, 0, 0.28), transparent 30%),
+    radial-gradient(circle at 82% 20%, rgba(193, 125, 255, 0.22), transparent 32%),
+    linear-gradient(135deg, #170721 0%, #351047 48%, #12051b 100%);
+  border-color: rgba(255, 215, 0, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(255, 215, 0, 0.18),
+    0 18px 60px rgba(89, 24, 119, 0.35);
+}
+
+.player-category-bg.marquee::before,
+.player-category-result.marquee::before {
+  background:
+    linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, 0.08) 48%, transparent 54%),
+    repeating-linear-gradient(135deg, rgba(255, 215, 0, 0.035) 0 2px, transparent 2px 16px);
+}
+
+/* GOLD — warm championship gold */
+.player-category-bg.gold,
+.player-category-result.gold {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.3), transparent 26%),
+    linear-gradient(135deg, #6f4c00 0%, #c58a00 42%, #f0bb2e 68%, #684500 100%);
+  border-color: rgba(255, 232, 152, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 135, 0.2),
+    0 18px 60px rgba(132, 88, 0, 0.32);
+}
+
+/* SILVER — cool metallic silver */
+.player-category-bg.silver,
+.player-category-result.silver {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(135deg, #26313d 0%, #566473 42%, #9ca8b5 68%, #26313d 100%);
+  border-color: rgba(218, 228, 238, 0.58);
+  box-shadow:
+    0 0 0 1px rgba(220, 230, 240, 0.12),
+    0 18px 60px rgba(25, 38, 51, 0.26);
+}
+
+.player-category-badge,
+.player-category-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.player-category-badge {
+  margin: 8px auto 14px;
+  padding: 8px 14px;
+  font-size: 0.76rem;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(0, 0, 0, 0.22);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.player-category-pill {
+  min-width: 78px;
+  padding: 5px 9px;
+  font-size: 0.68rem;
+}
+
+.player-category-badge.marquee,
+.player-category-pill.marquee {
+  background: linear-gradient(135deg, #3c164d, #7a2a8f);
+  color: #ffe66b;
+  border-color: rgba(255, 226, 107, 0.62);
+}
+
+.player-category-badge.gold,
+.player-category-pill.gold {
+  background: linear-gradient(135deg, #8c6100, #d9a514);
+  color: #fff8d8;
+  border-color: rgba(255, 240, 179, 0.7);
+}
+
+.player-category-badge.silver,
+.player-category-pill.silver {
+  background: linear-gradient(135deg, #536170, #8492a0);
+  color: #f7fbff;
+  border-color: rgba(228, 236, 244, 0.62);
+}
+
+.player-category-select {
+  min-width: 112px;
+}
+
+.projector-current-card.player-category-bg {
+  color: #fff;
+}
+
+.projector-current-card.player-category-bg .display-kicker,
+.projector-current-card.player-category-bg .projector-player-role,
+.projector-current-card.player-category-bg .projector-price-row span,
+.projector-current-card.player-category-bg .projector-timer-strip span {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.projector-current-card.player-category-bg h2,
+.projector-current-card.player-category-bg strong {
+  color: #fff;
+}
+
+.current-player-panel.player-category-bg,
+.owner-live-auction.player-category-bg {
+  color: #fff;
+}
+
+.current-player-panel.player-category-bg h2,
+.current-player-panel.player-category-bg strong,
+.owner-live-auction.player-category-bg h2,
+.owner-live-auction.player-category-bg h3,
+.owner-live-auction.player-category-bg strong {
+  color: #fff;
+}
+
+.current-player-panel.player-category-bg .current-player-role,
+.owner-live-auction.player-category-bg span,
+.owner-live-auction.player-category-bg small {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.player-category-result {
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .player-category-select {
+    min-width: 96px;
+  }
+
+  .player-category-pill {
+    min-width: 68px;
+    font-size: 0.62rem;
+  }
+}

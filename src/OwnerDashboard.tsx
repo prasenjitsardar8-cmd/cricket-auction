@@ -6,12 +6,18 @@ import {
 
 import "./OwnerDashboard.css";
 import "./OwnerDashboardLive.css";
+import "./AuctionDivision.css";
+import "./PlayerCategory.css";
+import "./PlayerStats.css";
 
 import {
   loadAuctionState,
   loadAuctionPlayers,
   loadTeams,
   loadTournamentSettings,
+  getPlayerCategory,
+  getPlayerStats,
+  type AuctionDivision,
 } from "./database";
 
 import {
@@ -44,6 +50,14 @@ function OwnerDashboard({
   ] =
     useState<Team | null>(
       null
+    );
+
+  const [
+    division,
+    setDivision,
+  ] =
+    useState<AuctionDivision>(
+      "MEN"
     );
 
   const [
@@ -153,6 +167,54 @@ function OwnerDashboard({
     useCallback(
       async () => {
         try {
+          if (
+            profile.teamId ===
+            null
+          ) {
+            setTeam(
+              null
+            );
+
+            setErrorMessage(
+              ""
+            );
+
+            return;
+          }
+
+          const {
+            data:
+              teamDivisionRow,
+            error:
+              teamDivisionError,
+          } =
+            await supabase
+              .from(
+                "teams"
+              )
+              .select(
+                "division"
+              )
+              .eq(
+                "id",
+                profile.teamId
+              )
+              .single();
+
+          if (
+            teamDivisionError
+          ) {
+            throw teamDivisionError;
+          }
+
+          const ownerDivision:
+            AuctionDivision =
+              teamDivisionRow
+                .division ===
+              "WOMEN"
+                ? "WOMEN"
+                : "MEN";
+
           const [
             allTeams,
             tournamentSettings,
@@ -160,10 +222,18 @@ function OwnerDashboard({
             auctionState,
           ] =
             await Promise.all([
-              loadTeams(),
-              loadTournamentSettings(),
-              loadAuctionPlayers(),
-              loadAuctionState(),
+              loadTeams(
+                ownerDivision
+              ),
+              loadTournamentSettings(
+                ownerDivision
+              ),
+              loadAuctionPlayers(
+                ownerDivision
+              ),
+              loadAuctionState(
+                ownerDivision
+              ),
             ]);
 
           const ownerTeam =
@@ -173,6 +243,10 @@ function OwnerDashboard({
                 profile.teamId
             ) ??
             null;
+
+          setDivision(
+            ownerDivision
+          );
 
           setTeam(
             ownerTeam
@@ -290,6 +364,133 @@ function OwnerDashboard({
   }, [refresh]);
 
   /* =====================================================
+     MOBILE / BACKGROUND LIVE SYNC
+
+     Mobile browsers can suspend WebSocket connections when
+     the screen locks, the browser is backgrounded, or the
+     device changes networks. Supabase Realtime remains the
+     primary update path, but this lightweight polling and
+     foreground refresh guarantees the Owner Dashboard catches
+     up with the latest auction state.
+  ===================================================== */
+
+  useEffect(() => {
+    let syncInProgress =
+      false;
+
+    const syncNow =
+      async () => {
+        if (
+          syncInProgress ||
+          document.visibilityState ===
+            "hidden"
+        ) {
+          return;
+        }
+
+        syncInProgress =
+          true;
+
+        try {
+          await refresh();
+        } finally {
+          syncInProgress =
+            false;
+        }
+      };
+
+    /*
+      Poll only while the page is visible.
+      2 seconds is fast enough for auction updates while
+      keeping database traffic modest.
+    */
+    const interval =
+      window.setInterval(
+        () => {
+          void syncNow();
+        },
+        2000
+      );
+
+    /*
+      Refresh immediately whenever a phone returns to the
+      browser after screen lock / app switch.
+    */
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          void syncNow();
+        }
+      };
+
+    const handleFocus =
+      () => {
+        void syncNow();
+      };
+
+    const handlePageShow =
+      () => {
+        void syncNow();
+      };
+
+    const handleOnline =
+      () => {
+        void syncNow();
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.addEventListener(
+      "focus",
+      handleFocus
+    );
+
+    window.addEventListener(
+      "pageshow",
+      handlePageShow
+    );
+
+    window.addEventListener(
+      "online",
+      handleOnline
+    );
+
+    return () => {
+      window.clearInterval(
+        interval
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+
+      window.removeEventListener(
+        "pageshow",
+        handlePageShow
+      );
+
+      window.removeEventListener(
+        "online",
+        handleOnline
+      );
+    };
+  }, [
+    refresh,
+  ]);
+
+  /* =====================================================
      LIVE TIMER
   ===================================================== */
 
@@ -367,10 +568,13 @@ function OwnerDashboard({
   ===================================================== */
 
   useEffect(() => {
+    let active =
+      true;
+
     const channel =
       supabase
         .channel(
-          `owner-team-${profile.id}`
+          `owner-team-${profile.id}-${division}`
         )
 
         .on(
@@ -383,7 +587,9 @@ function OwnerDashboard({
               "teams",
           },
           () => {
-            void refresh();
+            if (active) {
+              void refresh();
+            }
           }
         )
 
@@ -397,7 +603,9 @@ function OwnerDashboard({
               "purchases",
           },
           () => {
-            void refresh();
+            if (active) {
+              void refresh();
+            }
           }
         )
 
@@ -411,7 +619,9 @@ function OwnerDashboard({
               "auction_state",
           },
           () => {
-            void refresh();
+            if (active) {
+              void refresh();
+            }
           }
         )
 
@@ -425,7 +635,25 @@ function OwnerDashboard({
               "auction_players",
           },
           () => {
-            void refresh();
+            if (active) {
+              void refresh();
+            }
+          }
+        )
+
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema:
+              "public",
+            table:
+              "auction_history",
+          },
+          () => {
+            if (active) {
+              void refresh();
+            }
           }
         )
 
@@ -439,19 +667,42 @@ function OwnerDashboard({
               "tournament_settings",
           },
           () => {
-            void refresh();
+            if (active) {
+              void refresh();
+            }
           }
         )
 
-        .subscribe();
+        .subscribe(
+          (status) => {
+            /*
+              SUBSCRIBED = WebSocket is healthy.
+              Mobile browsers may temporarily report CLOSED /
+              CHANNEL_ERROR after backgrounding. The polling
+              fallback above keeps data current, and a refresh
+              is triggered as soon as the channel reconnects.
+            */
+            if (
+              active &&
+              status ===
+                "SUBSCRIBED"
+            ) {
+              void refresh();
+            }
+          }
+        );
 
     return () => {
+      active =
+        false;
+
       void supabase.removeChannel(
         channel
       );
     };
   }, [
     profile.id,
+    division,
     refresh,
   ]);
 
@@ -630,6 +881,15 @@ function OwnerDashboard({
             TEAM OWNER PORTAL
           </p>
 
+          <div className={`division-screen-badge ${division.toLowerCase()}`}>
+            {
+              division ===
+                "MEN"
+                ? "MEN'S AUCTION"
+                : "WOMEN'S AUCTION"
+            }
+          </div>
+
           <h1>
             {
               settings.tournamentName
@@ -673,56 +933,6 @@ function OwnerDashboard({
         </div>
 
       </header>
-
-      <div className="owner-mobile-quickbar">
-        <div>
-          <span>
-            PURSE
-          </span>
-
-          <strong>
-            ₹
-            {remaining.toFixed(
-              2
-            )}{" "}
-            Cr
-          </strong>
-        </div>
-
-        <div>
-          <span>
-            CURRENT BID
-          </span>
-
-          <strong>
-            ₹
-            {currentBid.toFixed(
-              2
-            )}{" "}
-            Cr
-          </strong>
-        </div>
-
-        <div
-          className={
-            timerRemaining <=
-            5
-              ? "critical"
-              : timerRemaining <=
-                10
-              ? "warning"
-              : ""
-          }
-        >
-          <span>
-            TIMER
-          </span>
-
-          <strong>
-            {timerRemaining}s
-          </strong>
-        </div>
-      </div>
 
       <main className="owner-content">
 
@@ -792,7 +1002,9 @@ function OwnerDashboard({
 
         {currentPlayer && (
 
-          <section className="owner-live-auction">
+          <section
+            className={`owner-live-auction player-category-bg ${getPlayerCategory(currentPlayer).toLowerCase()}`}
+          >
 
             <div className="owner-live-heading">
 
@@ -805,6 +1017,20 @@ function OwnerDashboard({
                 <h2>
                   Current Player
                 </h2>
+
+                <div className={`player-category-badge ${getPlayerCategory(currentPlayer).toLowerCase()}`}>
+                  {
+                    getPlayerCategory(
+                      currentPlayer
+                    ) === "MARQUEE"
+                      ? "MARQUEE PLAYER"
+                      : getPlayerCategory(
+                          currentPlayer
+                        ) === "GOLD"
+                      ? "GOLD PLAYER"
+                      : "SILVER PLAYER"
+                  }
+                </div>
 
               </div>
 
@@ -861,6 +1087,33 @@ function OwnerDashboard({
                   )}{" "}
                   Cr
                 </small>
+
+                <div className="player-stats-grid owner-stats-grid">
+                  <div>
+                    <span>MATCHES</span>
+                    <strong>{getPlayerStats(currentPlayer).matches}</strong>
+                  </div>
+                  <div>
+                    <span>RUNS</span>
+                    <strong>{getPlayerStats(currentPlayer).runs}</strong>
+                  </div>
+                  <div>
+                    <span>BAT AVG</span>
+                    <strong>{getPlayerStats(currentPlayer).battingAverage.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>STRIKE RATE</span>
+                    <strong>{getPlayerStats(currentPlayer).strikeRate.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>WICKETS</span>
+                    <strong>{getPlayerStats(currentPlayer).wickets}</strong>
+                  </div>
+                  <div>
+                    <span>ECONOMY</span>
+                    <strong>{getPlayerStats(currentPlayer).economyRate.toFixed(2)}</strong>
+                  </div>
+                </div>
 
               </div>
 

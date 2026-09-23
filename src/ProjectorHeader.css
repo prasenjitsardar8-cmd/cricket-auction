@@ -1,0 +1,168 @@
+/* =========================================================
+   MAIN PROJECTOR HEADER
+   Left: compact Men/Women toggle
+   Center: large tournament title + inline season
+   Right: sound + live status
+========================================================= */
+
+.projector-main-header {
+  min-height: 104px;
+  display: grid !important;
+  grid-template-columns:
+    minmax(220px, 1fr)
+    auto
+    minmax(220px, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding:
+    15px
+    clamp(20px, 2.8vw, 52px);
+}
+
+/* LEFT */
+.projector-main-header
+  .projector-division-switch {
+  justify-self: start;
+  width: auto;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 10px;
+}
+
+.projector-main-header
+  .projector-division-switch
+  button {
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 0.66rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* CENTER */
+.projector-title-lockup {
+  justify-self: center;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 16px;
+  white-space: nowrap;
+}
+
+.projector-main-header
+  .projector-title-lockup
+  h1 {
+  margin: 0 !important;
+  font-size:
+    clamp(
+      2.1rem,
+      3.3vw,
+      4rem
+    ) !important;
+  line-height: 0.95 !important;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+  text-align: center;
+}
+
+.projector-season-inline {
+  flex: 0 0 auto;
+  color: #f7d66f;
+  font-size:
+    clamp(
+      0.72rem,
+      0.95vw,
+      1rem
+    );
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* RIGHT */
+.projector-main-header
+  .projector-header-actions {
+  justify-self: end;
+}
+
+/* Keep right-side controls compact so title gets visual priority */
+.projector-main-header
+  .projector-sound-button {
+  padding: 8px 12px;
+  font-size: 0.66rem;
+}
+
+.projector-main-header
+  .projector-live-badge {
+  padding: 9px 14px;
+  gap: 8px;
+  font-size: 0.7rem;
+}
+
+/* Medium projector / laptop */
+@media (max-width: 1250px) {
+  .projector-main-header {
+    grid-template-columns:
+      minmax(185px, 0.8fr)
+      auto
+      minmax(185px, 0.8fr);
+    gap: 16px;
+  }
+
+  .projector-main-header
+    .projector-title-lockup
+    h1 {
+    font-size:
+      clamp(
+        1.8rem,
+        3vw,
+        3rem
+      ) !important;
+  }
+
+  .projector-title-lockup {
+    gap: 10px;
+  }
+
+  .projector-main-header
+    .projector-division-switch
+    button {
+    padding: 5px 8px;
+    font-size: 0.6rem;
+  }
+}
+
+/* Narrow screens: preserve usability without overlap */
+@media (max-width: 900px) {
+  .projector-main-header {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+  }
+
+  .projector-main-header
+    .projector-division-switch,
+  .projector-main-header
+    .projector-header-actions {
+    justify-self: center;
+  }
+
+  .projector-title-lockup {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .projector-main-header
+    .projector-title-lockup
+    h1 {
+    width: 100%;
+    font-size: 2rem !important;
+  }
+}
