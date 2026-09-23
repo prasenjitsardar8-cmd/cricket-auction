@@ -6,6 +6,12 @@ import {
 } from "react";
 
 import "./PublicDisplay.css";
+import "./AuctionDivision.css";
+import "./PlayerCategory.css";
+import "./PlayerStats.css";
+import "./ProjectorHeader.css";
+import "./ProjectorHPETheme.css";
+import "./ProjectorSync.css";
 
 import { supabase } from "./supabase";
 
@@ -15,6 +21,9 @@ import {
   loadAuctionState,
   loadTeams,
   loadTournamentSettings,
+  getPlayerCategory,
+  getPlayerStats,
+  type AuctionDivision,
   type DatabaseHistoryEntry,
 } from "./database";
 
@@ -37,7 +46,37 @@ type DisplayEventRow = {
   updated_at: string | null;
 };
 
+type ProjectorScreenMode =
+  | "WELCOME"
+  | "AUCTION";
+
+type ProjectorSyncRow = {
+  id: number;
+  division: AuctionDivision;
+  screen_mode: ProjectorScreenMode;
+  updated_at: string | null;
+};
+
 function PublicDisplay() {
+  const initialDivision:
+    AuctionDivision =
+      new URLSearchParams(
+        window.location.search
+      )
+        .get("division")
+        ?.toUpperCase() ===
+      "WOMEN"
+        ? "WOMEN"
+        : "MEN";
+
+  const [
+    division,
+    setDivision,
+  ] =
+    useState<AuctionDivision>(
+      initialDivision
+    );
+
   const [settings, setSettings] =
     useState<TournamentSettings>({
       tournamentName: "CRICKET AUCTION ARENA",
@@ -135,6 +174,20 @@ function PublicDisplay() {
     setSoundEnabled,
   ] = useState(false);
 
+
+  const [
+    projectorScreenMode,
+    setProjectorScreenMode,
+  ] =
+    useState<ProjectorScreenMode>(
+      "WELCOME"
+    );
+
+  const [
+    projectorSyncReady,
+    setProjectorSyncReady,
+  ] = useState(false);
+
   const audioContextRef =
     useRef<AudioContext | null>(
       null
@@ -145,6 +198,206 @@ function PublicDisplay() {
 
   const lastResultEventRef =
     useRef("");
+
+  const applyProjectorSyncState =
+    useCallback(
+      (
+        syncState:
+          ProjectorSyncRow
+      ) => {
+        const nextDivision:
+          AuctionDivision =
+            syncState.division ===
+            "WOMEN"
+              ? "WOMEN"
+              : "MEN";
+
+        const nextScreenMode:
+          ProjectorScreenMode =
+            syncState.screen_mode ===
+            "AUCTION"
+              ? "AUCTION"
+              : "WELCOME";
+
+        setProjectorScreenMode(
+          nextScreenMode
+        );
+
+        setSelectedTeamId(
+          null
+        );
+
+        setDivision(
+          (
+            currentDivision
+          ) => {
+            if (
+              currentDivision ===
+              nextDivision
+            ) {
+              return currentDivision;
+            }
+
+            const params =
+              new URLSearchParams(
+                window.location.search
+              );
+
+            params.set(
+              "division",
+              nextDivision.toLowerCase()
+            );
+
+            window.history.replaceState(
+              null,
+              "",
+              `${window.location.pathname}?${params.toString()}`
+            );
+
+            return nextDivision;
+          }
+        );
+      },
+      []
+    );
+
+  const loadProjectorSyncState =
+    useCallback(
+      async () => {
+        try {
+          const {
+            data,
+            error,
+          } =
+            await supabase
+              .from(
+                "projector_sync_state"
+              )
+              .select(
+                `
+                  id,
+                  division,
+                  screen_mode,
+                  updated_at
+                `
+              )
+              .eq(
+                "id",
+                1
+              )
+              .maybeSingle();
+
+          if (error) {
+            throw error;
+          }
+
+          if (data) {
+            applyProjectorSyncState(
+              data as
+                ProjectorSyncRow
+            );
+          }
+        } catch (error) {
+          console.error(
+            "PROJECTOR SYNC LOAD ERROR",
+            error
+          );
+        } finally {
+          setProjectorSyncReady(
+            true
+          );
+        }
+      },
+      [
+        applyProjectorSyncState,
+      ]
+    );
+
+  /*
+    Public projector pages normally run as the anonymous
+    Supabase role. We therefore use a tightly-scoped RPC
+    instead of writing directly to the sync table.
+
+    The RPC only allows:
+      division    = MEN / WOMEN
+      screen_mode = WELCOME / AUCTION
+      singleton   = id 1
+
+    We also apply the new state locally immediately so the
+    projector that was clicked never waits for Realtime.
+  */
+  const setSharedProjectorState =
+    useCallback(
+      async (
+        nextDivision:
+          AuctionDivision,
+        nextScreenMode:
+          ProjectorScreenMode
+      ) => {
+        try {
+          const {
+            error,
+          } =
+            await supabase.rpc(
+              "set_projector_sync_state",
+              {
+                p_division:
+                  nextDivision,
+
+                p_screen_mode:
+                  nextScreenMode,
+              }
+            );
+
+          if (error) {
+            throw error;
+          }
+
+          applyProjectorSyncState({
+            id: 1,
+            division:
+              nextDivision,
+            screen_mode:
+              nextScreenMode,
+            updated_at:
+              new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error(
+            "PROJECTOR SYNC WRITE ERROR",
+            error
+          );
+
+          setErrorMessage(
+            error instanceof
+              Error
+              ? `Projector sync failed: ${error.message}`
+              : "Projector sync failed."
+          );
+        }
+      },
+      [
+        applyProjectorSyncState,
+      ]
+    );
+
+  const changeDivision =
+    async (
+      nextDivision:
+        AuctionDivision
+    ) => {
+      if (
+        nextDivision ===
+        division
+      ) {
+        return;
+      }
+
+      await setSharedProjectorState(
+        nextDivision,
+        projectorScreenMode
+      );
+    };
 
   /* =====================================================
      HELPERS
@@ -209,11 +462,11 @@ function PublicDisplay() {
             loadedState,
           ] =
             await Promise.all([
-              loadTournamentSettings(),
-              loadTeams(),
-              loadAuctionPlayers(),
-              loadAuctionHistory(),
-              loadAuctionState(),
+              loadTournamentSettings(division),
+              loadTeams(division),
+              loadAuctionPlayers(division),
+              loadAuctionHistory(division),
+              loadAuctionState(division),
             ]);
 
           setSettings(
@@ -315,7 +568,7 @@ function PublicDisplay() {
           }
         }
       },
-      []
+      [division]
     );
 
   /* =====================================================
@@ -348,8 +601,8 @@ function PublicDisplay() {
                 updated_at
               `)
               .eq(
-                "id",
-                1
+                "division",
+                division
               )
               .maybeSingle();
 
@@ -374,7 +627,7 @@ function PublicDisplay() {
           );
         }
       },
-      []
+      [division]
     );
 
   /* =====================================================
@@ -382,14 +635,157 @@ function PublicDisplay() {
   ===================================================== */
 
   useEffect(() => {
+    void loadProjectorSyncState();
+  }, [
+    loadProjectorSyncState,
+  ]);
+
+  useEffect(() => {
+    if (
+      !projectorSyncReady
+    ) {
+      return;
+    }
+
     void loadAuctionData(
       true
     );
 
     void loadDisplayEvent();
   }, [
+    projectorSyncReady,
     loadAuctionData,
     loadDisplayEvent,
+  ]);
+
+  /* =====================================================
+     MOBILE / BACKGROUND PROJECTOR LIVE SYNC
+
+     Mobile browsers can suspend Supabase Realtime/WebSocket
+     connections while the screen is locked, the browser is
+     backgrounded, or the phone changes networks.
+
+     Realtime remains the primary update path. This visible-page
+     polling is a fallback so mobile projector screens always
+     catch up with the latest auction data.
+  ===================================================== */
+
+  useEffect(() => {
+    let syncInProgress =
+      false;
+
+    const syncNow =
+      async () => {
+        if (
+          syncInProgress ||
+          document.visibilityState ===
+            "hidden"
+        ) {
+          return;
+        }
+
+        syncInProgress =
+          true;
+
+        try {
+          await Promise.all([
+            loadAuctionData(),
+            loadDisplayEvent(),
+            loadProjectorSyncState(),
+          ]);
+        } finally {
+          syncInProgress =
+            false;
+        }
+      };
+
+    /*
+      Refresh every 2 seconds while visible.
+      This protects mobile projector screens if their
+      Realtime connection has been suspended.
+    */
+    const interval =
+      window.setInterval(
+        () => {
+          void syncNow();
+        },
+        1000
+      );
+
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          void syncNow();
+        }
+      };
+
+    const handleFocus =
+      () => {
+        void syncNow();
+      };
+
+    const handlePageShow =
+      () => {
+        void syncNow();
+      };
+
+    const handleOnline =
+      () => {
+        void syncNow();
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.addEventListener(
+      "focus",
+      handleFocus
+    );
+
+    window.addEventListener(
+      "pageshow",
+      handlePageShow
+    );
+
+    window.addEventListener(
+      "online",
+      handleOnline
+    );
+
+    return () => {
+      window.clearInterval(
+        interval
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
+
+      window.removeEventListener(
+        "pageshow",
+        handlePageShow
+      );
+
+      window.removeEventListener(
+        "online",
+        handleOnline
+      );
+    };
+  }, [
+    loadAuctionData,
+    loadDisplayEvent,
+    loadProjectorSyncState,
   ]);
 
   /* =====================================================
@@ -567,14 +963,66 @@ function PublicDisplay() {
             void loadAuctionData();
           }
         )
-        .subscribe();
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table:
+              "projector_sync_state",
+            filter:
+              "id=eq.1",
+          },
+          (
+            payload
+          ) => {
+            const nextRow =
+              payload.new as
+                | ProjectorSyncRow
+                | undefined;
+
+            if (
+              nextRow &&
+              nextRow.id ===
+                1
+            ) {
+              applyProjectorSyncState(
+                nextRow
+              );
+            } else {
+              void loadProjectorSyncState();
+            }
+          }
+        )
+        .subscribe(
+          (status) => {
+            /*
+              Mobile browsers may drop/suspend the WebSocket.
+              When the channel reconnects, immediately reload
+              the auction state so the projector catches up.
+            */
+            if (
+              status ===
+              "SUBSCRIBED"
+            ) {
+              void loadAuctionData();
+              void loadDisplayEvent();
+              void loadProjectorSyncState();
+            }
+          }
+        );
 
     return () => {
       void supabase.removeChannel(
         channel
       );
     };
-  }, [loadAuctionData]);
+  }, [
+    loadAuctionData,
+    loadDisplayEvent,
+    loadProjectorSyncState,
+    applyProjectorSyncState,
+  ]);
 
   /* =====================================================
      DERIVED DATA
@@ -583,11 +1031,6 @@ function PublicDisplay() {
   const currentPlayer =
     auctionPlayers[
       currentPlayerIndex
-    ];
-
-  const nextPlayer =
-    auctionPlayers[
-      currentPlayerIndex + 1
     ];
 
   const biddingTeam =
@@ -622,6 +1065,128 @@ function PublicDisplay() {
         : timerRemaining <= 5
         ? "GOING_ONCE"
         : "BIDDING";
+
+
+  /*
+    PROJECTOR AUCTION SUMMARY
+
+    A player can now appear more than once in auction_history:
+    - Round 1 UNSOLD
+    - Re-auction SOLD / UNSOLD
+
+    Therefore we must NOT count every history row.
+    We keep only the latest result for each player.
+    Because loadAuctionHistory() is ordered oldest -> newest,
+    each later entry replaces the earlier one.
+  */
+  const latestResultByPlayer =
+    new Map<
+      number,
+      DatabaseHistoryEntry
+    >();
+
+  history.forEach(
+    (entry) => {
+      latestResultByPlayer.set(
+        entry.playerId,
+        entry
+      );
+    }
+  );
+
+  const latestPlayerResults =
+    Array.from(
+      latestResultByPlayer.values()
+    );
+
+  const soldEntries =
+    latestPlayerResults.filter(
+      (entry) =>
+        entry.status ===
+        "SOLD"
+    );
+
+  const unsoldEntries =
+    latestPlayerResults.filter(
+      (entry) =>
+        entry.status ===
+        "UNSOLD"
+    );
+
+  /*
+    Count unique players that have received at least one result,
+    rather than counting repeated re-auction history rows.
+  */
+  const totalProcessed =
+    latestPlayerResults.length;
+
+  const pendingPlayers =
+    Math.max(
+      0,
+      auctionPlayers.length -
+        totalProcessed
+    );
+
+  const totalSpent =
+    teams.reduce(
+      (
+        grandTotal,
+        team
+      ) =>
+        grandTotal +
+        calculateSpent(
+          team
+        ),
+      0
+    );
+
+  const highestPurchase =
+    teams
+      .flatMap(
+        (team) =>
+          team.players.map(
+            (player) => ({
+              player,
+              team,
+            })
+          )
+      )
+      .reduce<
+        | {
+            player:
+              Team["players"][number];
+            team: Team;
+          }
+        | null
+      >(
+        (
+          highest,
+          item
+        ) => {
+          if (
+            !highest ||
+            item.player.purchasePrice >
+              highest.player.purchasePrice
+          ) {
+            return item;
+          }
+
+          return highest;
+        },
+        null
+      );
+
+  const auctionProgress =
+    auctionPlayers.length >
+    0
+      ? Math.round(
+          (
+            totalProcessed /
+            auctionPlayers.length
+          ) *
+            100
+        )
+      : 0;
 
   /* =====================================================
      PROJECTOR SOUND CUES
@@ -913,7 +1478,10 @@ function PublicDisplay() {
      LOADING
   ===================================================== */
 
-  if (loading) {
+  if (
+    loading ||
+    !projectorSyncReady
+  ) {
     return (
       <div className="display-loading-screen">
         <div className="display-loading-card">
@@ -970,6 +1538,23 @@ function PublicDisplay() {
     );
   }
 
+  const displayPlayer =
+    displayEvent?.player_name
+      ? auctionPlayers.find(
+          (player) =>
+            player.name ===
+            displayEvent.player_name
+        ) ??
+        null
+      : null;
+
+  const displayPlayerCategory =
+    displayPlayer
+      ? getPlayerCategory(
+          displayPlayer
+        )
+      : "SILVER";
+
   /* =====================================================
      SOLD TAKEOVER
   ===================================================== */
@@ -979,7 +1564,7 @@ function PublicDisplay() {
     "SOLD"
   ) {
     return (
-      <div className="result-screen sold-result-screen">
+      <div className={`result-screen sold-result-screen player-category-result ${displayPlayerCategory.toLowerCase()}`}>
         <div className="result-glow result-glow-one" />
         <div className="result-glow result-glow-two" />
 
@@ -1089,7 +1674,7 @@ function PublicDisplay() {
     "UNSOLD"
   ) {
     return (
-      <div className="result-screen unsold-result-screen">
+      <div className={`result-screen unsold-result-screen player-category-result ${displayPlayerCategory.toLowerCase()}`}>
         <div className="result-glow result-glow-one" />
         <div className="result-glow result-glow-two" />
 
@@ -1162,6 +1747,42 @@ function PublicDisplay() {
     return (
       <div className="projector-shell">
         <header className="projector-header">
+        <div
+          className="auction-division-switch"
+        >
+          <button
+            className={
+              division ===
+              "MEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "MEN"
+              )
+            }
+          >
+            MEN'S AUCTION
+          </button>
+
+          <button
+            className={
+              division ===
+              "WOMEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "WOMEN"
+              )
+            }
+          >
+            WOMEN'S AUCTION
+          </button>
+        </div>
+
           <div>
             <div className="display-kicker">
               {settings.seasonName}
@@ -1391,23 +2012,250 @@ function PublicDisplay() {
   }
 
   /* =====================================================
+     WELCOME SCREEN
+     Shown until the first bid/timer activity starts.
+  ===================================================== */
+
+  if (
+    projectorScreenMode ===
+      "WELCOME"
+  ) {
+    return (
+      <div className="projector-shell hpe-projector-shell">
+        <header className="projector-header projector-main-header">
+          <div
+            className="auction-division-switch projector-division-switch"
+          >
+            <button
+              className={
+                division ===
+                "MEN"
+                  ? "active"
+                  : ""
+              }
+              onClick={() => {
+                void changeDivision(
+                  "MEN"
+                );
+              }}
+            >
+              MEN'S AUCTION
+            </button>
+
+            <button
+              className={
+                division ===
+                "WOMEN"
+                  ? "active"
+                  : ""
+              }
+              onClick={() => {
+                void changeDivision(
+                  "WOMEN"
+                );
+              }}
+            >
+              WOMEN'S AUCTION
+            </button>
+          </div>
+
+          <div className="projector-title-lockup">
+            <h1>
+              {settings.tournamentName}
+            </h1>
+
+            <div className="projector-season-inline">
+              {settings.seasonName}
+            </div>
+          </div>
+
+          <div className="projector-header-actions">
+            {!soundEnabled && (
+              <button
+                className="projector-sound-button"
+                onClick={
+                  enableSound
+                }
+              >
+                ENABLE SOUND
+              </button>
+            )}
+
+            {errorMessage && (
+              <div
+                className="projector-sync-error"
+                title={
+                  errorMessage
+                }
+              >
+                SYNC ERROR
+              </div>
+            )}
+
+            <div className="projector-live-badge projector-waiting-badge">
+              <span />
+              READY
+            </div>
+          </div>
+        </header>
+
+        <main className="projector-welcome-main">
+          <section className="projector-welcome-card">
+            <div className="welcome-orbit welcome-orbit-one" />
+            <div className="welcome-orbit welcome-orbit-two" />
+            <div className="welcome-grid-pattern" />
+
+            <div className="welcome-content">
+              <div className="welcome-eyebrow">
+                WELCOME TO
+              </div>
+
+              <h2>
+                {settings.tournamentName}
+              </h2>
+
+              <div className="welcome-season">
+                {settings.seasonName}
+              </div>
+
+              <div className="welcome-divider">
+                <span />
+                <strong>
+                  {division ===
+                  "MEN"
+                    ? "MEN'S AUCTION"
+                    : "WOMEN'S AUCTION"}
+                </strong>
+                <span />
+              </div>
+
+              <p>
+                The stage is set. The teams are ready.
+                The auction begins with the first bid.
+              </p>
+
+              <button
+                type="button"
+                className="welcome-enter-auction-button"
+                onClick={() => {
+                  void setSharedProjectorState(
+                    division,
+                    "AUCTION"
+                  );
+                }}
+              >
+                GO TO AUCTION
+                <span aria-hidden="true">
+                  →
+                </span>
+              </button>
+
+              <div className="welcome-status-row">
+                <div className="welcome-status-pill">
+                  <span className="welcome-status-dot" />
+                  AUCTION READY
+                </div>
+
+                <div className="welcome-stat">
+                  <span>PLAYERS</span>
+                  <strong>
+                    {
+                      auctionPlayers.length
+                    }
+                  </strong>
+                </div>
+
+                <div className="welcome-stat">
+                  <span>TEAMS</span>
+                  <strong>
+                    {
+                      teams.length
+                    }
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="welcome-color-rail">
+              <span className="rail-green" />
+              <span className="rail-mint" />
+              <span className="rail-cyan" />
+              <span className="rail-blue" />
+              <span className="rail-purple" />
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  /* =====================================================
      MAIN LIVE PROJECTOR DASHBOARD
   ===================================================== */
 
   return (
-    <div className="projector-shell">
-      <header className="projector-header">
-        <div>
-          <div className="display-kicker">
-            {settings.seasonName}
-          </div>
+    <div className="projector-shell hpe-projector-shell">
+      <header className="projector-header projector-main-header">
+        <div
+          className="auction-division-switch projector-division-switch"
+        >
+          <button
+            className={
+              division ===
+              "MEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "MEN"
+              )
+            }
+          >
+            MEN'S AUCTION
+          </button>
 
+          <button
+            className={
+              division ===
+              "WOMEN"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              changeDivision(
+                "WOMEN"
+              )
+            }
+          >
+            WOMEN'S AUCTION
+          </button>
+        </div>
+
+        <div className="projector-title-lockup">
           <h1>
             {settings.tournamentName}
           </h1>
+
+          <div className="projector-season-inline">
+            {settings.seasonName}
+          </div>
         </div>
 
         <div className="projector-header-actions">
+          <button
+            type="button"
+            className="projector-welcome-button"
+            onClick={() => {
+              void setSharedProjectorState(
+                division,
+                "WELCOME"
+              );
+            }}
+          >
+            WELCOME SCREEN
+          </button>
+
           {!soundEnabled && (
             <button
               className="projector-sound-button"
@@ -1419,6 +2267,17 @@ function PublicDisplay() {
             </button>
           )}
 
+          {errorMessage && (
+            <div
+              className="projector-sync-error"
+              title={
+                errorMessage
+              }
+            >
+              SYNC ERROR
+            </div>
+          )}
+
           <div className="projector-live-badge">
             <span />
             LIVE AUCTION
@@ -1428,42 +2287,95 @@ function PublicDisplay() {
 
       <main className="projector-main">
         <section className="projector-live-grid">
-          <article className="projector-current-card">
+          <article
+            className={`projector-current-card player-category-bg ${
+              currentPlayer
+                ? getPlayerCategory(
+                    currentPlayer
+                  ).toLowerCase()
+                : "silver"
+            }`}
+          >
             <div className="display-kicker">
               CURRENT PLAYER
             </div>
 
             {currentPlayer ? (
               <>
-                <div
-                  className={`projector-player-photo ${
-                    currentPlayer.photo
-                      ? "has-image"
-                      : ""
-                  }`}
-                >
-                  {currentPlayer.photo ? (
-                    <img
-                      src={
-                        currentPlayer.photo
-                      }
-                      alt={
+                <div className="projector-player-identity">
+                  <div className={`player-category-badge ${getPlayerCategory(currentPlayer).toLowerCase()}`}>
+                    {
+                      getPlayerCategory(
+                        currentPlayer
+                      ) === "MARQUEE"
+                        ? "MARQUEE PLAYER"
+                        : getPlayerCategory(
+                            currentPlayer
+                          ) === "GOLD"
+                        ? "GOLD PLAYER"
+                        : "SILVER PLAYER"
+                    }
+                  </div>
+
+                  <div
+                    className={`projector-player-photo ${
+                      currentPlayer.photo
+                        ? "has-image"
+                        : ""
+                    }`}
+                  >
+                    {currentPlayer.photo ? (
+                      <img
+                        src={
+                          currentPlayer.photo
+                        }
+                        alt={
+                          currentPlayer.name
+                        }
+                      />
+                    ) : (
+                      getInitials(
                         currentPlayer.name
-                      }
-                    />
-                  ) : (
-                    getInitials(
-                      currentPlayer.name
-                    )
-                  )}
+                      )
+                    )}
+                  </div>
+
+                  <div className="projector-player-identity-text">
+                    <h2 className="projector-player-name">
+                      {currentPlayer.name}
+                    </h2>
+
+                    <div className="projector-player-role">
+                      {currentPlayer.role}
+                    </div>
+                  </div>
                 </div>
 
-                <h2>
-                  {currentPlayer.name}
-                </h2>
-
-                <div className="projector-player-role">
-                  {currentPlayer.role}
+                <div className="player-stats-grid projector-stats-grid">
+                  <div>
+                    <span>MATCHES</span>
+                    <strong>{getPlayerStats(currentPlayer).matches}</strong>
+                  </div>
+                  <div>
+                    <span>RUNS</span>
+                    <strong>{getPlayerStats(currentPlayer).runs}</strong>
+                  </div>
+                  <div>
+                    <span>BAT AVG</span>
+                    <strong>{getPlayerStats(currentPlayer).battingAverage.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>STRIKE RATE</span>
+                    <strong>{getPlayerStats(currentPlayer).strikeRate.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span>WICKETS</span>
+                    <strong>{getPlayerStats(currentPlayer).wickets}</strong>
+                  </div>
+                  <div>
+                    <span>ECONOMY</span>
+                    <strong>{getPlayerStats(currentPlayer).economyRate.toFixed(2)}</strong>
+                  </div>
                 </div>
 
                 <div className="projector-price-row">
@@ -1612,34 +2524,6 @@ function PublicDisplay() {
 
             <div>
               <div className="display-kicker">
-                NEXT PLAYER
-              </div>
-
-              <div className="next-player-display">
-                <strong>
-                  {nextPlayer?.name ??
-                    "End of Auction"}
-                </strong>
-
-                {nextPlayer && (
-                  <span>
-                    {
-                      nextPlayer.role
-                    }{" "}
-                    • ₹
-                    {nextPlayer.basePrice.toFixed(
-                      2
-                    )}{" "}
-                    Cr
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="status-separator" />
-
-            <div>
-              <div className="display-kicker">
                 LAST PURCHASE
               </div>
 
@@ -1670,6 +2554,130 @@ function PublicDisplay() {
               )}
             </div>
           </article>
+        </section>
+
+        <section className="projector-live-summary">
+          <div className="projector-summary-heading">
+            <div>
+              <div className="display-kicker">
+                LIVE AUCTION SUMMARY
+              </div>
+
+              <h2>
+                Auction at a Glance
+              </h2>
+            </div>
+
+            <div className="projector-summary-progress-label">
+              {
+                auctionProgress
+              }
+              % COMPLETE
+            </div>
+          </div>
+
+          <div className="projector-summary-progress">
+            <div
+              style={{
+                width:
+                  `${auctionProgress}%`,
+              }}
+            />
+          </div>
+
+          <div className="projector-summary-grid">
+            <div className="projector-summary-stat sold">
+              <span>
+                SOLD
+              </span>
+
+              <strong>
+                {
+                  soldEntries.length
+                }
+              </strong>
+            </div>
+
+            <div className="projector-summary-stat unsold">
+              <span>
+                UNSOLD
+              </span>
+
+              <strong>
+                {
+                  unsoldEntries.length
+                }
+              </strong>
+            </div>
+
+            <div className="projector-summary-stat remaining">
+              <span>
+                REMAINING
+              </span>
+
+              <strong>
+                {
+                  pendingPlayers
+                }
+              </strong>
+            </div>
+
+            <div className="projector-summary-stat money">
+              <span>
+                TOTAL SPENT
+              </span>
+
+              <strong>
+                ₹
+                {
+                  totalSpent.toFixed(
+                    2
+                  )
+                }{" "}
+                Cr
+              </strong>
+            </div>
+
+            <div className="projector-summary-stat highest">
+              <span>
+                HIGHEST BUY
+              </span>
+
+              {highestPurchase ? (
+                <>
+                  <strong>
+                    ₹
+                    {
+                      highestPurchase.player.purchasePrice.toFixed(
+                        2
+                      )
+                    }{" "}
+                    Cr
+                  </strong>
+
+                  <small>
+                    {
+                      highestPurchase.player.name
+                    }
+                    {" • "}
+                    {
+                      highestPurchase.team.shortName
+                    }
+                  </small>
+                </>
+              ) : (
+                <>
+                  <strong>
+                    —
+                  </strong>
+
+                  <small>
+                    No sale yet
+                  </small>
+                </>
+              )}
+            </div>
+          </div>
         </section>
 
         <section className="projector-teams-section">
