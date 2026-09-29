@@ -38,19 +38,24 @@ function RootApp() {
       .replace(/\/+$/, "")
       .toLowerCase();
 
+  const queryMode =
+    new URLSearchParams(
+      window.location.search
+    ).get("mode");
+
   const isFixturesAdmin =
-    path === "/fixtures/admin";
+    path === "/fixtures/admin" ||
+    queryMode === "fixtures-admin";
 
   const isFixturesDisplay =
-    path === "/fixtures/display";
+    path === "/fixtures/display" ||
+    queryMode === "fixtures-display";
 
   const isAuctionDisplay =
     path === "/display" ||
     (
-      path === "" &&
-      new URLSearchParams(
-        window.location.search
-      ).get("mode") === "display"
+      (path === "" || path === "/") &&
+      queryMode === "display"
     );
 
   const isPublicDisplay =
