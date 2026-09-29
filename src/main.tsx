@@ -15,6 +15,8 @@ import App from "./App.tsx";
 import PublicDisplay from "./PublicDisplay.tsx";
 import Login from "./Login.tsx";
 import OwnerDashboard from "./OwnerDashboard.tsx";
+import FixturesAdmin from "./FixturesAdmin.tsx";
+import FixturesDisplay from "./FixturesDisplay.tsx";
 
 import {
   supabase,
@@ -31,6 +33,30 @@ function RootApp() {
   const mode =
     supabasePortal;
 
+  const path =
+    window.location.pathname
+      .replace(/\/+$/, "")
+      .toLowerCase();
+
+  const isFixturesAdmin =
+    path === "/fixtures/admin";
+
+  const isFixturesDisplay =
+    path === "/fixtures/display";
+
+  const isAuctionDisplay =
+    path === "/display" ||
+    (
+      path === "" &&
+      new URLSearchParams(
+        window.location.search
+      ).get("mode") === "display"
+    );
+
+  const isPublicDisplay =
+    isAuctionDisplay ||
+    isFixturesDisplay;
+
   const [profile, setProfile] =
     useState<UserProfile | null>(
       null
@@ -38,7 +64,7 @@ function RootApp() {
 
   const [authLoading, setAuthLoading] =
     useState(
-      mode !== "display"
+      !isPublicDisplay
     );
 
   const [authError, setAuthError] =
@@ -75,7 +101,7 @@ function RootApp() {
     );
 
   useEffect(() => {
-    if (mode === "display") {
+    if (isPublicDisplay) {
       return;
     }
 
@@ -115,15 +141,29 @@ function RootApp() {
       data.subscription.unsubscribe();
     };
   }, [
-    mode,
+    isPublicDisplay,
     loadProfile,
   ]);
 
-  if (mode === "display") {
+  /* =====================================================
+     PUBLIC SCREENS
+  ===================================================== */
+
+  if (isFixturesDisplay) {
+    return (
+      <FixturesDisplay />
+    );
+  }
+
+  if (isAuctionDisplay) {
     return (
       <PublicDisplay />
     );
   }
+
+  /* =====================================================
+     AUTH
+  ===================================================== */
 
   if (authLoading) {
     return (
@@ -150,7 +190,7 @@ function RootApp() {
           </div>
 
           <h2>
-            Loading Auction Portal
+            Loading Cricket Portal
           </h2>
         </div>
       </div>
@@ -191,8 +231,13 @@ function RootApp() {
     );
   }
 
+  /* =====================================================
+     ROLE GUARDS
+  ===================================================== */
+
   if (
-    mode === "admin" &&
+    (mode === "admin" ||
+      isFixturesAdmin) &&
     profile.role !== "admin"
   ) {
     return (
@@ -219,6 +264,10 @@ function RootApp() {
     );
   }
 
+  /* =====================================================
+     OWNER
+  ===================================================== */
+
   if (
     profile.role === "owner"
   ) {
@@ -229,75 +278,47 @@ function RootApp() {
     );
   }
 
+  /* =====================================================
+     FIXTURES ADMIN
+  ===================================================== */
+
+  if (
+    profile.role === "admin" &&
+    isFixturesAdmin
+  ) {
+    return (
+      <div>
+        <PortalToolbar
+          profileName={
+            profile.fullName
+          }
+          projectorHref="/fixtures/display"
+          adminHref="/admin"
+          adminLabel="AUCTION ADMIN"
+        />
+
+        <FixturesAdmin />
+      </div>
+    );
+  }
+
+  /* =====================================================
+     AUCTION ADMIN
+  ===================================================== */
+
   if (
     profile.role === "admin"
   ) {
     return (
       <div>
-        <div
-          style={{
-            position: "fixed",
-            top: "12px",
-            right: "14px",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          <div
-            style={{
-              padding: "7px 10px",
-              border:
-                "1px solid #27364f",
-              borderRadius: "8px",
-              background: "#08101e",
-              color: "#8995aa",
-              fontSize: "9px",
-            }}
-          >
-            ADMIN •{" "}
-            {profile.fullName}
-          </div>
-
-          <a
-            href="/display"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              padding: "8px 11px",
-              border:
-                "1px solid #3b4b66",
-              borderRadius: "8px",
-              background: "#08101e",
-              color: "#a6b4ca",
-              textDecoration: "none",
-              fontSize: "9px",
-              fontWeight: 900,
-            }}
-          >
-            PROJECTOR
-          </a>
-
-          <button
-            onClick={() =>
-              void signOut()
-            }
-            style={{
-              padding: "8px 11px",
-              border:
-                "1px solid #f7c948",
-              borderRadius: "8px",
-              background: "#08101e",
-              color: "#f7c948",
-              cursor: "pointer",
-              fontSize: "9px",
-              fontWeight: 900,
-            }}
-          >
-            SIGN OUT
-          </button>
-        </div>
+        <PortalToolbar
+          profileName={
+            profile.fullName
+          }
+          projectorHref="/display"
+          adminHref="/fixtures/admin"
+          adminLabel="MATCH DAY"
+        />
 
         <App />
       </div>
@@ -315,6 +336,103 @@ function RootApp() {
       }}
     >
       Invalid account role.
+    </div>
+  );
+}
+
+type PortalToolbarProps = {
+  profileName: string;
+  projectorHref: string;
+  adminHref: string;
+  adminLabel: string;
+};
+
+function PortalToolbar({
+  profileName,
+  projectorHref,
+  adminHref,
+  adminLabel,
+}: PortalToolbarProps) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: "12px",
+        right: "14px",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+      }}
+    >
+      <div
+        style={{
+          padding: "7px 10px",
+          border:
+            "1px solid #27364f",
+          borderRadius: "8px",
+          background: "#08101e",
+          color: "#8995aa",
+          fontSize: "9px",
+        }}
+      >
+        ADMIN • {profileName}
+      </div>
+
+      <a
+        href={adminHref}
+        style={{
+          padding: "8px 11px",
+          border:
+            "1px solid #3b4b66",
+          borderRadius: "8px",
+          background: "#08101e",
+          color: "#a6b4ca",
+          textDecoration: "none",
+          fontSize: "9px",
+          fontWeight: 900,
+        }}
+      >
+        {adminLabel}
+      </a>
+
+      <a
+        href={projectorHref}
+        target="_blank"
+        rel="noreferrer"
+        style={{
+          padding: "8px 11px",
+          border:
+            "1px solid #3b4b66",
+          borderRadius: "8px",
+          background: "#08101e",
+          color: "#a6b4ca",
+          textDecoration: "none",
+          fontSize: "9px",
+          fontWeight: 900,
+        }}
+      >
+        PROJECTOR
+      </a>
+
+      <button
+        onClick={() =>
+          void signOut()
+        }
+        style={{
+          padding: "8px 11px",
+          border:
+            "1px solid #f7c948",
+          borderRadius: "8px",
+          background: "#08101e",
+          color: "#f7c948",
+          cursor: "pointer",
+          fontSize: "9px",
+          fontWeight: 900,
+        }}
+      >
+        SIGN OUT
+      </button>
     </div>
   );
 }
