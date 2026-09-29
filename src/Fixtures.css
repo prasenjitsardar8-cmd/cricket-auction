@@ -1,0 +1,944 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.fixtures-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  background:
+    radial-gradient(
+      circle at top,
+      #172554,
+      #020617 58%,
+      #01030a
+    );
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.fixtures-kicker {
+  margin: 0;
+  color: #f4c95d;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.fixtures-muted {
+  color: #94a3b8;
+}
+
+/* =====================================================
+   ADMIN
+===================================================== */
+
+.fixtures-admin-page {
+  min-height: 100vh;
+  padding: 42px;
+  background:
+    radial-gradient(
+      circle at top,
+      #111c35,
+      #020617 52%,
+      #01030a
+    );
+  color: #f8fafc;
+}
+
+.fixtures-admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.fixtures-admin-header h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(2rem, 4vw, 4rem);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+}
+
+.fixtures-admin-header > div:first-child > p:last-child {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.fixtures-admin-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fixtures-admin-header-actions a,
+.fixtures-admin-header-actions button,
+.fixture-editor-actions button {
+  border: 1px solid #334155;
+  border-radius: 11px;
+  padding: 11px 14px;
+  background: #0b1220;
+  color: #e2e8f0;
+  text-decoration: none;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.fixtures-admin-header-actions button {
+  border-color: rgba(244, 201, 93, 0.44);
+  color: #f4c95d;
+}
+
+.fixtures-admin-header-actions button:disabled,
+.fixture-editor-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fixtures-message {
+  margin-bottom: 20px;
+  padding: 12px 15px;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 12px;
+  background: rgba(34, 197, 94, 0.09);
+  color: #bbf7d0;
+  font-weight: 800;
+}
+
+.fixtures-message.error {
+  border-color: rgba(248, 113, 113, 0.28);
+  background: rgba(127, 29, 29, 0.18);
+  color: #fecaca;
+}
+
+.fixtures-admin-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.fixtures-admin-summary > div {
+  min-height: 105px;
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.fixtures-admin-summary span {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.fixtures-admin-summary strong {
+  display: block;
+  margin-top: 9px;
+  font-size: 2rem;
+}
+
+.fixtures-admin-summary .current {
+  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(22, 101, 52, 0.12);
+}
+
+.fixtures-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(380px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.fixtures-admin-card {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  background: rgba(5, 12, 26, 0.88);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+}
+
+.fixtures-schedule-admin,
+.fixture-editor,
+.fixtures-admin-points {
+  padding: 20px;
+}
+
+.fixtures-card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.fixtures-card-heading h2 {
+  margin: 5px 0 0;
+  font-size: 1.6rem;
+}
+
+.fixtures-card-heading > span {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.fixtures-admin-list {
+  display: grid;
+  gap: 8px;
+}
+
+.fixtures-admin-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns:
+    58px
+    108px
+    minmax(260px, 1fr)
+    minmax(150px, auto)
+    102px;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.52);
+  color: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fixtures-admin-row:hover,
+.fixtures-admin-row.selected {
+  border-color: rgba(244, 201, 93, 0.42);
+  background: rgba(30, 41, 59, 0.82);
+}
+
+.fixtures-admin-row.current {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(22, 101, 52, 0.13);
+}
+
+.fixtures-admin-row.completed {
+  opacity: 0.76;
+}
+
+.fixtures-admin-match-no {
+  font-size: 1.15rem;
+  font-weight: 950;
+  color: #f4c95d;
+}
+
+.fixtures-admin-time {
+  font-weight: 900;
+}
+
+.fixtures-admin-time small {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.fixtures-admin-teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.fixtures-admin-teams span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.fixtures-admin-score-mini {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.fixtures-admin-score-mini span {
+  color: #475569;
+}
+
+.fixture-status-pill {
+  justify-self: end;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  font-size: 0.64rem;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+}
+
+.fixture-status-pill.current {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.fixture-status-pill.completed {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(59, 130, 246, 0.09);
+  color: #93c5fd;
+}
+
+.fixtures-admin-break {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 10px 16px;
+  border: 1px dashed rgba(244, 201, 93, 0.24);
+  border-radius: 12px;
+  background: rgba(120, 74, 13, 0.08);
+  color: #f4c95d;
+}
+
+.fixtures-admin-break span {
+  color: #94a3b8;
+}
+
+.fixture-editor {
+  position: sticky;
+  top: 20px;
+}
+
+.fixture-editor-teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.74);
+  text-align: center;
+}
+
+.fixture-editor-teams span {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.fixture-editor-teams strong {
+  font-size: 1rem;
+}
+
+.fixture-editor-teams b {
+  color: #f4c95d;
+}
+
+.fixture-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.fixture-editor-grid label,
+.fixture-editor-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.fixture-editor-grid input,
+.fixture-editor-field input,
+.fixture-editor-field select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: #08101e;
+  color: #fff;
+  outline: none;
+}
+
+.fixture-editor-field {
+  margin-top: 12px;
+}
+
+.fixture-editor-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.fixture-editor-actions .primary {
+  border-color: rgba(244, 201, 93, 0.42);
+  color: #f4c95d;
+}
+
+.fixture-editor-actions .success {
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #86efac;
+}
+
+.fixture-editor-actions .danger {
+  border-color: rgba(248, 113, 113, 0.32);
+  color: #fca5a5;
+}
+
+.fixtures-admin-points {
+  margin-top: 20px;
+}
+
+/* =====================================================
+   POINTS TABLE
+===================================================== */
+
+.fixtures-points-table-wrap {
+  overflow-x: auto;
+}
+
+.fixtures-points-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 7px;
+}
+
+.fixtures-points-table th {
+  padding: 8px 13px;
+  color: #64748b;
+  font-size: 0.67rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.fixtures-points-table th:nth-child(2),
+.fixtures-points-table td:nth-child(2) {
+  text-align: left;
+}
+
+.fixtures-points-table td {
+  padding: 12px 13px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  text-align: center;
+  font-weight: 800;
+}
+
+.fixtures-points-table td:first-child {
+  border-radius: 11px 0 0 11px;
+}
+
+.fixtures-points-table td:last-child {
+  border-radius: 0 11px 11px 0;
+}
+
+/* =====================================================
+   PROJECTOR
+===================================================== */
+
+.fixtures-projector {
+  min-height: 100vh;
+  padding: 28px 34px 46px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(
+      circle at 50% -20%,
+      #1d335f,
+      #071226 38%,
+      #020617 72%,
+      #01030a
+    );
+  color: #f8fafc;
+}
+
+.fixtures-projector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 18px 22px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 22px;
+  background: rgba(5, 12, 26, 0.82);
+}
+
+.fixtures-projector-header h1 {
+  margin: 5px 0 4px;
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.fixtures-projector-header > div:first-child > p:last-child {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.fixtures-projector-progress {
+  min-width: 190px;
+  padding: 15px 18px;
+  border: 1px solid rgba(244, 201, 93, 0.22);
+  border-radius: 16px;
+  background: rgba(120, 74, 13, 0.10);
+  text-align: center;
+}
+
+.fixtures-projector-progress span,
+.fixtures-projector-progress small {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.fixtures-projector-progress strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 2rem;
+}
+
+.fixtures-projector-main {
+  margin-top: 22px;
+}
+
+.fixtures-projector-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 0.72fr);
+  gap: 18px;
+}
+
+.fixture-current-card,
+.fixture-next-card,
+.fixtures-projector-points,
+.fixtures-projector-schedule {
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(11, 24, 49, 0.94),
+      rgba(3, 10, 24, 0.96)
+    );
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.22);
+}
+
+.fixture-current-card {
+  min-height: 350px;
+  padding: 24px 28px;
+}
+
+.fixture-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.fixture-card-topline h2 {
+  margin: 5px 0 0;
+  font-size: clamp(2rem, 3vw, 3.2rem);
+}
+
+.fixture-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.10);
+  color: #86efac;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.fixture-live-pill span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.8);
+}
+
+.fixture-current-time {
+  margin-top: 10px;
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.fixture-current-time span {
+  margin: 0 8px;
+  color: #475569;
+}
+
+.fixture-current-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.fixture-current-team {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.62);
+  text-align: center;
+}
+
+.fixture-current-team > span {
+  display: block;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.fixture-current-team > strong {
+  display: block;
+  margin-top: 7px;
+  font-size: clamp(1.7rem, 3vw, 3rem);
+  line-height: 1.02;
+}
+
+.fixture-vs {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(244, 201, 93, 0.26);
+  border-radius: 50%;
+  background: rgba(120, 74, 13, 0.10);
+  color: #f4c95d;
+  font-weight: 950;
+}
+
+.fixture-big-score {
+  margin-top: 13px;
+  color: #f4c95d;
+  font-size: clamp(1.35rem, 2.1vw, 2.2rem);
+  font-weight: 950;
+}
+
+.fixture-result-banner {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 12px;
+  background: rgba(34, 197, 94, 0.09);
+  color: #bbf7d0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.fixture-waiting {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  color: #64748b;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.fixture-next-card {
+  padding: 24px;
+}
+
+.fixture-next-number {
+  margin-top: 14px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.fixture-next-time {
+  margin-top: 7px;
+  color: #f4c95d;
+  font-size: 1.4rem;
+  font-weight: 950;
+}
+
+.fixture-next-time span {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.fixture-next-team {
+  margin-top: 18px;
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 13px;
+  background: rgba(15, 23, 42, 0.66);
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  font-weight: 950;
+  text-align: center;
+}
+
+.fixture-next-vs {
+  margin: 9px 0 -7px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.fixtures-projector-points,
+.fixtures-projector-schedule {
+  margin-top: 18px;
+  padding: 20px 22px;
+}
+
+.fixtures-projector-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.fixtures-projector-section-heading h2 {
+  margin: 4px 0 0;
+  font-size: clamp(1.7rem, 2.5vw, 2.5rem);
+}
+
+.fixtures-projector-section-heading > span {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.fixtures-points-table.projector {
+  border-spacing: 0 6px;
+}
+
+.fixtures-points-table.projector th {
+  padding: 7px 16px;
+  font-size: 0.72rem;
+}
+
+.fixtures-points-table.projector td {
+  padding: 12px 16px;
+  font-size: clamp(0.95rem, 1.2vw, 1.25rem);
+}
+
+.fixtures-points-table.projector td:nth-child(2) {
+  font-size: clamp(1rem, 1.4vw, 1.38rem);
+  font-weight: 950;
+}
+
+.fixtures-points-table.projector .pts {
+  color: #f4c95d;
+  font-size: clamp(1.2rem, 1.8vw, 1.7rem);
+  font-weight: 950;
+}
+
+.fixture-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fixture-schedule-card {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 61px;
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 11px;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.fixture-schedule-card.current {
+  border-color: rgba(34, 197, 94, 0.42);
+  background: rgba(22, 101, 52, 0.13);
+}
+
+.fixture-schedule-card.completed {
+  opacity: 0.60;
+}
+
+.fixture-schedule-card.break {
+  grid-template-columns: 62px minmax(0, 1fr);
+  border-color: rgba(244, 201, 93, 0.22);
+  background: rgba(120, 74, 13, 0.07);
+}
+
+.fixture-schedule-no {
+  color: #f4c95d;
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.fixture-schedule-content > span,
+.fixture-schedule-card.break span {
+  display: block;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.fixture-schedule-content > strong,
+.fixture-schedule-card.break strong {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fixture-schedule-content b {
+  color: #64748b;
+  font-size: 0.64rem;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1200px) {
+  .fixtures-admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fixture-editor {
+    position: static;
+  }
+
+  .fixtures-admin-summary {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .fixtures-projector-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .fixture-schedule-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .fixtures-admin-page,
+  .fixtures-projector {
+    padding: 18px 12px 32px;
+  }
+
+  .fixtures-admin-header,
+  .fixtures-projector-header,
+  .fixtures-projector-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fixtures-admin-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fixtures-admin-row {
+    grid-template-columns: 44px 1fr 90px;
+  }
+
+  .fixtures-admin-time,
+  .fixtures-admin-score-mini {
+    display: none;
+  }
+
+  .fixtures-admin-teams {
+    grid-template-columns: 1fr;
+  }
+
+  .fixtures-admin-teams span {
+    display: none;
+  }
+
+  .fixture-editor-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fixture-current-versus {
+    grid-template-columns: 1fr;
+  }
+
+  .fixture-vs {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+  }
+
+  .fixture-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =====================================================
+   100-INCH+ PROJECTOR TUNING
+===================================================== */
+
+@media (min-width: 1600px) {
+  .fixtures-projector {
+    padding:
+      34px
+      46px
+      54px;
+  }
+
+  .fixtures-kicker {
+    font-size: 0.92rem;
+  }
+
+  .fixture-current-card {
+    min-height: 390px;
+  }
+
+  .fixtures-points-table.projector td {
+    padding:
+      15px
+      18px;
+  }
+
+  .fixture-schedule-card {
+    min-height: 68px;
+  }
+
+  .fixture-schedule-content > strong,
+  .fixture-schedule-card.break strong {
+    font-size: 0.9rem;
+  }
+}
