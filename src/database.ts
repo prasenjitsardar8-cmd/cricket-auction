@@ -640,6 +640,10 @@ export async function loadAuctionPlayers(
         "division",
         division
       )
+      .eq(
+        "is_preassigned",
+        false
+      )
       .order(
         "queue_position",
         {
@@ -798,6 +802,133 @@ export async function insertAuctionPlayer(
           " | "
         )
     );
+  }
+}
+
+export async function updateAuctionPlayerDetails(
+  playerId: number,
+  details: {
+    name: string;
+    role: AuctionPlayer["role"];
+    category: PlayerCategory;
+    photoUrl: string | null;
+  },
+  division: AuctionDivision = "MEN"
+) {
+  const cleanName =
+    details.name.trim();
+
+  if (!cleanName) {
+    throw new Error(
+      "Player name cannot be empty."
+    );
+  }
+
+  const {
+    error:
+      playerError,
+  } =
+    await supabase
+      .from(
+        "auction_players"
+      )
+      .update({
+        name:
+          cleanName,
+
+        role:
+          details.role,
+
+        category:
+          details.category,
+
+        base_price:
+          getCategoryBasePrice(
+            details.category
+          ),
+
+        photo_url:
+          details.photoUrl,
+
+        updated_at:
+          new Date().toISOString(),
+      })
+      .eq(
+        "id",
+        playerId
+      )
+      .eq(
+        "division",
+        division
+      );
+
+  if (playerError) {
+    throw playerError;
+  }
+
+  /*
+    auction_history stores a snapshot of the player's name.
+    Keep historical SOLD / UNSOLD entries aligned if the
+    administrator corrects the player's name later.
+  */
+  const {
+    error:
+      historyError,
+  } =
+    await supabase
+      .from(
+        "auction_history"
+      )
+      .update({
+        player_name:
+          cleanName,
+      })
+      .eq(
+        "player_id",
+        playerId
+      )
+      .eq(
+        "division",
+        division
+      );
+
+  if (historyError) {
+    throw historyError;
+  }
+
+  /*
+    If a SOLD / UNSOLD animation is currently still active,
+    update its visible player identity too.
+  */
+  const {
+    error:
+      displayError,
+  } =
+    await supabase
+      .from(
+        "display_event"
+      )
+      .update({
+        player_name:
+          cleanName,
+
+        player_photo_url:
+          details.photoUrl,
+
+        updated_at:
+          new Date().toISOString(),
+      })
+      .eq(
+        "player_id",
+        playerId
+      )
+      .eq(
+        "division",
+        division
+      );
+
+  if (displayError) {
+    throw displayError;
   }
 }
 
@@ -1538,6 +1669,9 @@ export async function sellPlayer(
           price,
 
         division,
+
+        acquisition_type:
+          "AUCTION",
       });
 
   if (
@@ -1603,6 +1737,9 @@ export async function sellPlayer(
         price,
 
         division,
+
+        acquisition_type:
+          "AUCTION",
       });
 
   if (
@@ -1669,6 +1806,9 @@ export async function markPlayerUnsold(
           "UNSOLD",
 
         division,
+
+        acquisition_type:
+          "AUCTION",
       });
 
   if (
@@ -1697,6 +1837,10 @@ export async function undoLastDatabaseAction(
       .eq(
         "division",
         division
+      )
+      .eq(
+        "acquisition_type",
+        "AUCTION"
       )
       .order(
         "created_at",
@@ -1834,6 +1978,10 @@ export async function resetDatabaseAuction(
       .eq(
         "division",
         division
+      )
+      .eq(
+        "acquisition_type",
+        "AUCTION"
       );
 
   if (
@@ -1854,6 +2002,10 @@ export async function resetDatabaseAuction(
       .eq(
         "division",
         division
+      )
+      .eq(
+        "acquisition_type",
+        "AUCTION"
       );
 
   if (
@@ -1880,6 +2032,10 @@ export async function resetDatabaseAuction(
       .eq(
         "division",
         division
+      )
+      .eq(
+        "is_preassigned",
+        false
       );
 
   if (

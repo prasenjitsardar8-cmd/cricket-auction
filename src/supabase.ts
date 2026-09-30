@@ -33,7 +33,8 @@ export type SupabasePortal =
 */
 const pathPortal: SupabasePortal =
   path === "/admin" ||
-  path === "/fixtures/admin"
+  path === "/fixtures/admin" ||
+  path === "/admin/direct-assignment"
     ? "admin"
     : path === "/owner"
     ? "owner"

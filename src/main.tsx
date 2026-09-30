@@ -17,6 +17,8 @@ import Login from "./Login.tsx";
 import OwnerDashboard from "./OwnerDashboard.tsx";
 import FixturesAdmin from "./FixturesAdmin.tsx";
 import FixturesDisplay from "./FixturesDisplay.tsx";
+import DirectAssignmentAdmin from "./DirectAssignmentAdmin.tsx";
+import AuctionActivationControl from "./AuctionActivationControl.tsx";
 
 import {
   supabase,
@@ -46,6 +48,9 @@ function RootApp() {
   const isFixturesAdmin =
     path === "/fixtures/admin" ||
     queryMode === "fixtures-admin";
+
+  const isDirectAssignmentAdmin =
+    path === "/admin/direct-assignment";
 
   const isFixturesDisplay =
     path === "/fixtures/display" ||
@@ -284,6 +289,28 @@ function RootApp() {
   }
 
   /* =====================================================
+     DIRECT PLAYER ASSIGNMENT
+  ===================================================== */
+
+  if (
+    profile.role === "admin" &&
+    isDirectAssignmentAdmin
+  ) {
+    return (
+      <div>
+        <PortalToolbar
+          profileName={profile.fullName}
+          projectorHref="/display"
+          adminHref="/admin"
+          adminLabel="AUCTION ADMIN"
+        />
+
+        <DirectAssignmentAdmin />
+      </div>
+    );
+  }
+
+  /* =====================================================
      FIXTURES ADMIN
   ===================================================== */
 
@@ -323,6 +350,8 @@ function RootApp() {
           projectorHref="/display"
           adminHref="/fixtures/admin"
           adminLabel="MATCH DAY"
+          showAuctionToggle
+          showDirectAssignment
         />
 
         <App />
@@ -350,6 +379,8 @@ type PortalToolbarProps = {
   projectorHref: string;
   adminHref: string;
   adminLabel: string;
+  showAuctionToggle?: boolean;
+  showDirectAssignment?: boolean;
 };
 
 function PortalToolbar({
@@ -357,6 +388,8 @@ function PortalToolbar({
   projectorHref,
   adminHref,
   adminLabel,
+  showAuctionToggle = false,
+  showDirectAssignment = false,
 }: PortalToolbarProps) {
   return (
     <div
@@ -367,9 +400,16 @@ function PortalToolbar({
         zIndex: 9999,
         display: "flex",
         alignItems: "center",
+        justifyContent: "flex-end",
+        flexWrap: "wrap",
         gap: "8px",
+        maxWidth: "calc(100vw - 28px)",
       }}
     >
+      {showAuctionToggle && (
+        <AuctionActivationControl />
+      )}
+
       <div
         style={{
           padding: "7px 10px",
@@ -400,6 +440,24 @@ function PortalToolbar({
       >
         {adminLabel}
       </a>
+
+      {showDirectAssignment && (
+        <a
+          href="/admin/direct-assignment"
+          style={{
+            padding: "8px 11px",
+            border: "1px solid rgba(244,201,93,.42)",
+            borderRadius: "8px",
+            background: "#08101e",
+            color: "#f7c948",
+            textDecoration: "none",
+            fontSize: "9px",
+            fontWeight: 900,
+          }}
+        >
+          DIRECT ASSIGN
+        </a>
+      )}
 
       <a
         href={projectorHref}
@@ -542,3 +600,4 @@ createRoot(
     <RootApp />
   </StrictMode>
 );
+
