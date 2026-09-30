@@ -1,0 +1,109 @@
+.auction-activation-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: rgba(8, 16, 30, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.auction-activation-status-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+}
+
+.auction-activation-control.active {
+  border-color: rgba(34, 197, 94, 0.36);
+}
+
+.auction-activation-control.active
+.auction-activation-status-dot {
+  background: #22c55e;
+  box-shadow:
+    0 0 12px
+    rgba(34, 197, 94, 0.72);
+}
+
+.auction-activation-control.inactive {
+  border-color: rgba(248, 113, 113, 0.34);
+}
+
+.auction-activation-control.inactive
+.auction-activation-status-dot {
+  background: #ef4444;
+  box-shadow:
+    0 0 12px
+    rgba(239, 68, 68, 0.62);
+}
+
+.auction-activation-copy {
+  min-width: 64px;
+  line-height: 1.05;
+}
+
+.auction-activation-copy span {
+  display: block;
+  color: #64748b;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.auction-activation-copy strong {
+  display: block;
+  margin-top: 2px;
+  color: #f8fafc;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+}
+
+.auction-activation-control button {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  padding: 7px 9px;
+  background: #111827;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.auction-activation-control.active button {
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fca5a5;
+}
+
+.auction-activation-control.inactive button {
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #86efac;
+}
+
+.auction-activation-control button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .auction-activation-control {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .auction-activation-copy {
+    flex: 1;
+  }
+
+  .auction-activation-control button {
+    padding:
+      8px
+      10px;
+  }
+}
