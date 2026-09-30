@@ -1,0 +1,48 @@
+.direct-loading{min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at top,#172554,#020617 58%,#01030a);color:#fff;font-weight:900}.direct-page{min-height:100vh;box-sizing:border-box;padding:82px 38px 44px;background:radial-gradient(circle at top,#111c35,#020617 52%,#01030a);color:#f8fafc}.direct-header{display:flex;justify-content:space-between;gap:24px;margin-bottom:20px}.direct-header h1{margin:5px 0 8px;font-size:clamp(2rem,4vw,4rem);line-height:.98;letter-spacing:-.05em}.direct-header>div:first-child>p:last-child{max-width:760px;margin:0;color:#94a3b8}.direct-kicker{margin:0;color:#f4c95d;font-size:.75rem;font-weight:950;letter-spacing:.15em}.direct-division{display:flex;gap:8px}.direct-division button{border:1px solid #334155;border-radius:10px;padding:10px 15px;background:#08101e;color:#94a3b8;font-weight:950;cursor:pointer}.direct-division button.active{border-color:rgba(244,201,93,.46);color:#f4c95d}.direct-message{margin-bottom:18px;padding:12px 14px;border:1px solid rgba(34,197,94,.28);border-radius:11px;background:rgba(34,197,94,.09);color:#bbf7d0;font-weight:800}.direct-message.error{border-color:rgba(248,113,113,.3);background:rgba(127,29,29,.16);color:#fecaca}.direct-cap-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}.direct-cap-card{padding:16px;border:1px solid rgba(148,163,184,.15);border-radius:16px;background:rgba(15,23,42,.72)}.direct-cap-card>span{color:#f4c95d;font-size:.72rem;font-weight:950}.direct-cap-card>strong{display:block;margin:3px 0 13px}.direct-cap-card>div{display:flex;justify-content:space-between;gap:10px;margin-top:5px}.direct-cap-card small{color:#64748b;font-size:.65rem;font-weight:900}.direct-cap-card .remaining{margin-top:10px;padding-top:10px;border-top:1px solid rgba(148,163,184,.12)}.direct-cap-card .remaining b{color:#86efac}.direct-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(390px,.8fr);gap:18px;align-items:start}.direct-card{padding:20px;border:1px solid rgba(148,163,184,.15);border-radius:19px;background:rgba(5,12,26,.88);box-shadow:0 18px 55px rgba(0,0,0,.22)}.direct-card h2{margin:5px 0 16px}.direct-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.direct-form-grid label{display:block;margin-bottom:6px;color:#94a3b8;font-size:.68rem;font-weight:900}.direct-form-grid select,.direct-form-grid input{width:100%;min-height:42px;box-sizing:border-box;border:1px solid #334155;border-radius:10px;padding:10px;background:#08101e;color:#f8fafc}.direct-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:15px}.direct-preview>div{min-height:72px;padding:11px;border:1px solid rgba(148,163,184,.13);border-radius:11px;background:rgba(15,23,42,.61)}.direct-preview span,.direct-row span{display:block;color:#64748b;font-size:.63rem;font-weight:900}.direct-preview strong{display:block;margin-top:7px}.direct-preview .negative{border-color:rgba(248,113,113,.35)}.direct-preview .negative strong{color:#fca5a5}.direct-assign{width:100%;margin-top:14px;border:1px solid rgba(34,197,94,.38);border-radius:11px;padding:13px 14px;background:rgba(22,101,52,.18);color:#86efac;font-weight:950;cursor:pointer}.direct-assign:disabled{opacity:.42;cursor:not-allowed}.direct-note{margin:11px 0 0;color:#64748b;font-size:.74rem}.direct-list-heading{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}.direct-list-heading h2{margin:5px 0 0}.direct-list-heading>strong{color:#f4c95d;font-size:1.8rem}.direct-list{display:grid;gap:8px}.direct-row{display:grid;grid-template-columns:1.1fr 1fr .8fr auto;align-items:center;gap:10px;padding:11px;border:1px solid rgba(148,163,184,.13);border-radius:11px;background:rgba(15,23,42,.58)}.direct-row strong{display:block;margin-top:4px;font-size:.82rem}.direct-row .money{color:#f4c95d}.direct-row button{border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:8px 9px;background:rgba(127,29,29,.1);color:#fca5a5;font-size:.68rem;font-weight:900;cursor:pointer}.direct-empty{min-height:150px;display:grid;place-items:center;color:#64748b}@media(max-width:1100px){.direct-cap-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.direct-layout{grid-template-columns:1fr}}@media(max-width:760px){.direct-page{padding:92px 12px 30px}.direct-header{flex-direction:column}.direct-cap-grid,.direct-form-grid{grid-template-columns:1fr}.direct-preview{grid-template-columns:1fr 1fr}.direct-row{grid-template-columns:1fr 1fr}.direct-row button{grid-column:1/-1}}
+
+/* =========================================================
+   DIRECT ASSIGNMENT PAGE RESET
+   Prevent older global styles from overriding this module.
+========================================================= */
+.direct-page,
+.direct-page * {
+  box-sizing: border-box;
+}
+
+.direct-page button,
+.direct-page input,
+.direct-page select {
+  font: inherit;
+}
+
+.direct-page button,
+.direct-page select,
+.direct-page input {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.direct-page select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #94a3b8 50%),
+    linear-gradient(135deg, #94a3b8 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
+}
+
+.direct-page input::placeholder {
+  color: #64748b;
+}
+
+.direct-page button:focus-visible,
+.direct-page input:focus-visible,
+.direct-page select:focus-visible {
+  outline: 2px solid rgba(244, 201, 93, 0.72);
+  outline-offset: 2px;
+}

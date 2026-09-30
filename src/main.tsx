@@ -10,6 +10,7 @@ import {
 } from "react-dom/client";
 
 import "./index.css";
+import "./DirectAssignmentAdmin.css";
 
 import App from "./App.tsx";
 import PublicDisplay from "./PublicDisplay.tsx";
