@@ -306,6 +306,201 @@ export async function loadFixtures(): Promise<FixtureMatch[]> {
   return ((data ?? []) as FixtureRow[]).map(mapFixture);
 }
 
+
+const FIXTURE_UNDO_KEY =
+  "hpe-fixtures-last-saved-v1";
+
+type FixtureUndoSnapshot = {
+  id: number;
+  status: FixtureStatus;
+  team1_runs: number | null;
+  team1_wickets: number | null;
+  team1_overs: string | null;
+  team2_runs: number | null;
+  team2_wickets: number | null;
+  team2_overs: string | null;
+  result_type: FixtureResultType;
+  result_text: string | null;
+};
+
+async function saveUndoSnapshot(
+  matchId: number
+) {
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from("fixtures_matches")
+      .select(
+        `
+          id,
+          status,
+          team1_runs,
+          team1_wickets,
+          team1_overs,
+          team2_runs,
+          team2_wickets,
+          team2_overs,
+          result_type,
+          result_text
+        `
+      )
+      .eq("id", matchId)
+      .single();
+
+  if (error) {
+    throw error;
+  }
+
+  const snapshot:
+    FixtureUndoSnapshot = {
+      id:
+        Number(
+          data.id
+        ),
+      status:
+        data.status ===
+        "CURRENT"
+          ? "CURRENT"
+          : data.status ===
+            "COMPLETED"
+          ? "COMPLETED"
+          : "UPCOMING",
+      team1_runs:
+        numberOrNull(
+          data.team1_runs
+        ),
+      team1_wickets:
+        numberOrNull(
+          data.team1_wickets
+        ),
+      team1_overs:
+        data.team1_overs ===
+          null ||
+        data.team1_overs ===
+          undefined
+          ? null
+          : String(
+              data.team1_overs
+            ),
+      team2_runs:
+        numberOrNull(
+          data.team2_runs
+        ),
+      team2_wickets:
+        numberOrNull(
+          data.team2_wickets
+        ),
+      team2_overs:
+        data.team2_overs ===
+          null ||
+        data.team2_overs ===
+          undefined
+          ? null
+          : String(
+              data.team2_overs
+            ),
+      result_type:
+        data.result_type ===
+          "TEAM1" ||
+        data.result_type ===
+          "TEAM2" ||
+        data.result_type ===
+          "TIE" ||
+        data.result_type ===
+          "NO_RESULT"
+          ? data.result_type
+          : null,
+      result_text:
+        data.result_text ??
+        null,
+    };
+
+  window.localStorage.setItem(
+    FIXTURE_UNDO_KEY,
+    JSON.stringify(
+      snapshot
+    )
+  );
+}
+
+export function hasUndoLastSaved(): boolean {
+  return Boolean(
+    window.localStorage.getItem(
+      FIXTURE_UNDO_KEY
+    )
+  );
+}
+
+export async function undoLastSavedFixture() {
+  const raw =
+    window.localStorage.getItem(
+      FIXTURE_UNDO_KEY
+    );
+
+  if (!raw) {
+    throw new Error(
+      "There is no saved fixture change to undo."
+    );
+  }
+
+  let snapshot:
+    FixtureUndoSnapshot;
+
+  try {
+    snapshot =
+      JSON.parse(
+        raw
+      ) as FixtureUndoSnapshot;
+  } catch {
+    throw new Error(
+      "The saved undo data is invalid."
+    );
+  }
+
+  const {
+    error,
+  } =
+    await supabase
+      .from("fixtures_matches")
+      .update({
+        status:
+          snapshot.status,
+        team1_runs:
+          snapshot.team1_runs,
+        team1_wickets:
+          snapshot.team1_wickets,
+        team1_overs:
+          snapshot.team1_overs,
+        team2_runs:
+          snapshot.team2_runs,
+        team2_wickets:
+          snapshot.team2_wickets,
+        team2_overs:
+          snapshot.team2_overs,
+        result_type:
+          snapshot.result_type,
+        result_text:
+          snapshot.result_text,
+        updated_at:
+          new Date()
+            .toISOString(),
+      })
+      .eq(
+        "id",
+        snapshot.id
+      );
+
+  if (error) {
+    throw error;
+  }
+
+  window.localStorage.removeItem(
+    FIXTURE_UNDO_KEY
+  );
+}
+
 export async function setCurrentFixture(matchId: number) {
   const now = new Date().toISOString();
 
@@ -339,6 +534,10 @@ export async function updateFixtureScore(
   matchId: number,
   input: FixtureResultInput
 ) {
+  await saveUndoSnapshot(
+    matchId
+  );
+
   const { error } = await supabase
     .from("fixtures_matches")
     .update({
@@ -363,6 +562,10 @@ export async function completeFixture(
   matchId: number,
   input: FixtureResultInput
 ) {
+  await saveUndoSnapshot(
+    matchId
+  );
+
   const { error } = await supabase
     .from("fixtures_matches")
     .update({
@@ -385,6 +588,10 @@ export async function completeFixture(
 }
 
 export async function resetFixture(matchId: number) {
+  await saveUndoSnapshot(
+    matchId
+  );
+
   const { error } = await supabase
     .from("fixtures_matches")
     .update({
@@ -407,25 +614,154 @@ export async function resetFixture(matchId: number) {
 }
 
 export async function undoLastCompletedMatch() {
-  const { data, error } = await supabase.rpc(
-    "undo_last_completed_match"
-  );
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from(
+        "fixtures_matches"
+      )
+      .select(
+        "id, slot_order, updated_at"
+      )
+      .eq(
+        "slot_type",
+        "MATCH"
+      )
+      .eq(
+        "status",
+        "COMPLETED"
+      )
+      .order(
+        "updated_at",
+        {
+          ascending: false,
+        }
+      )
+      .order(
+        "slot_order",
+        {
+          ascending: false,
+        }
+      )
+      .limit(
+        1
+      );
 
   if (error) {
     throw error;
   }
 
-  return data;
+  const last =
+    data?.[0];
+
+  if (!last) {
+    throw new Error(
+      "There is no completed match to undo."
+    );
+  }
+
+  const now =
+    new Date()
+      .toISOString();
+
+  const {
+    error:
+      currentError,
+  } =
+    await supabase
+      .from(
+        "fixtures_matches"
+      )
+      .update({
+        status:
+          "UPCOMING",
+        updated_at:
+          now,
+      })
+      .eq(
+        "status",
+        "CURRENT"
+      );
+
+  if (currentError) {
+    throw currentError;
+  }
+
+  const {
+    error:
+      reopenError,
+  } =
+    await supabase
+      .from(
+        "fixtures_matches"
+      )
+      .update({
+        status:
+          "CURRENT",
+        updated_at:
+          now,
+      })
+      .eq(
+        "id",
+        Number(
+          last.id
+        )
+      );
+
+  if (reopenError) {
+    throw reopenError;
+  }
 }
 
 export async function resetEntireSchedule() {
-  const { error } = await supabase.rpc(
-    "reset_entire_schedule"
-  );
+  const now =
+    new Date()
+      .toISOString();
+
+  const {
+    error,
+  } =
+    await supabase
+      .from(
+        "fixtures_matches"
+      )
+      .update({
+        status:
+          "UPCOMING",
+        team1_runs:
+          null,
+        team1_wickets:
+          null,
+        team1_overs:
+          null,
+        team2_runs:
+          null,
+        team2_wickets:
+          null,
+        team2_overs:
+          null,
+        result_type:
+          null,
+        result_text:
+          null,
+        updated_at:
+          now,
+      })
+      .not(
+        "id",
+        "is",
+        null
+      );
 
   if (error) {
     throw error;
   }
+
+  window.localStorage.removeItem(
+    FIXTURE_UNDO_KEY
+  );
 }
 
 export async function advanceToNextFixture(fixtures: FixtureMatch[]) {

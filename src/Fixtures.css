@@ -944,73 +944,8 @@
 }
 
 
-/* =====================================================
-   FIXTURES ADMIN - PLAYER ASSIGNMENT / UNDO / FULL RESET
-===================================================== */
-
-.fixtures-admin-header-actions .player-assignment-jump {
-  border-color: rgba(59, 130, 246, 0.45);
-  background: rgba(30, 64, 175, 0.18);
-  color: #bfdbfe;
+.fixtures-admin-header-actions .fixtures-undo-saved-button {
+  border-color: rgba(56, 189, 248, 0.36);
+  background: rgba(14, 116, 144, 0.10);
+  color: #7dd3fc;
 }
-
-.fixtures-admin-header-actions .fixtures-undo-button {
-  border-color: rgba(250, 204, 21, 0.35);
-  background: rgba(113, 63, 18, 0.10);
-  color: #fde047;
-}
-
-.fixtures-admin-header-actions .fixtures-reset-all-button {
-  border-color: rgba(248, 113, 113, 0.42);
-  background: rgba(127, 29, 29, 0.15);
-  color: #fca5a5;
-}
-
-.fixtures-player-assignment-section {
-  scroll-margin-top: 88px;
-  margin-top: 20px;
-}
-
-.fixtures-player-assignment-banner {
-  margin-bottom: 10px;
-  padding: 18px 20px;
-  border: 1px solid rgba(59, 130, 246, 0.28);
-  border-radius: 18px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(30, 64, 175, 0.16),
-      rgba(5, 12, 26, 0.90)
-    );
-}
-
-.fixtures-player-assignment-banner h2 {
-  margin: 5px 0 7px;
-  font-size: clamp(1.6rem, 2.7vw, 2.5rem);
-}
-
-.fixtures-player-assignment-banner p:last-child {
-  max-width: 800px;
-  margin: 0;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-@media (max-width: 760px) {
-  .fixtures-admin-header-actions {
-    width: 100%;
-  }
-
-  .fixtures-admin-header-actions > a,
-  .fixtures-admin-header-actions > button {
-    flex: 1 1 calc(50% - 8px);
-    min-height: 42px;
-    text-align: center;
-  }
-
-  .fixtures-admin-header-actions .fixtures-reset-all-button {
-    flex-basis: 100%;
-  }
-}
-
-

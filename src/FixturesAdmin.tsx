@@ -23,6 +23,8 @@ import {
   setCurrentFixture,
   updateFixtureScore,
   undoLastCompletedMatch,
+  undoLastSavedFixture,
+  hasUndoLastSaved,
   type FixtureMatch,
   type FixtureResultInput,
   type FixtureResultType,
@@ -80,6 +82,15 @@ function FixturesAdmin() {
 
   const [errorMessage, setErrorMessage] =
     useState("");
+
+  const [
+    undoSavedAvailable,
+    setUndoSavedAvailable,
+  ] =
+    useState(
+      () =>
+        hasUndoLastSaved()
+    );
 
   const refresh = useCallback(
     async (showLoader = false) => {
@@ -251,6 +262,10 @@ function FixturesAdmin() {
         await action();
         await refresh(false);
 
+        setUndoSavedAvailable(
+          hasUndoLastSaved()
+        );
+
         setMessage(successMessage);
       } catch (error) {
         console.error(error);
@@ -304,6 +319,26 @@ function FixturesAdmin() {
   };
 
 
+
+  const handleUndoLastSaved =
+    async () => {
+      const confirmed =
+        window.confirm(
+          "UNDO LAST SAVED CHANGE?\n\nThis will restore the selected match to the exact score/result state it had immediately before the most recent SAVE SCORE, COMPLETE MATCH, or RESET action."
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      await runAction(
+        async () => {
+          await undoLastSavedFixture();
+        },
+        "Last saved fixture change was undone."
+      );
+    };
+
   const handleUndoLastCompleted =
     async () => {
       const confirmed =
@@ -349,6 +384,36 @@ function FixturesAdmin() {
       await runAction(
         async () => {
           await resetEntireSchedule();
+
+          window.localStorage.setItem(
+            "hpe-match-day-rotation-v2",
+            JSON.stringify({
+              ...(
+                (() => {
+                  try {
+                    return JSON.parse(
+                      window.localStorage.getItem(
+                        "hpe-match-day-rotation-v2"
+                      ) ?? "{}"
+                    );
+                  } catch {
+                    return {};
+                  }
+                })()
+              ),
+              lineups: {},
+            })
+          );
+
+          window.dispatchEvent(
+            new Event(
+              "match-day-full-reset"
+            )
+          );
+
+          setUndoSavedAvailable(
+            false
+          );
         },
         "Entire match schedule reset."
       );
@@ -399,6 +464,20 @@ function FixturesAdmin() {
             onClick={goToPlayerAssignment}
           >
             PLAYER ASSIGNMENT
+          </button>
+
+          <button
+            type="button"
+            className="fixtures-undo-saved-button"
+            disabled={
+              saving ||
+              !undoSavedAvailable
+            }
+            onClick={() =>
+              void handleUndoLastSaved()
+            }
+          >
+            ↶ UNDO LAST SAVED
           </button>
 
           <button
