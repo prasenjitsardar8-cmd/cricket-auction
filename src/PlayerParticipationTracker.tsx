@@ -502,7 +502,7 @@ function PlayerParticipationTracker() {
             PLAYER ROTATION
           </p>
 
-          <h2>Participation Tracker</h2>
+          <h2>Player Assignment & Participation Tracker</h2>
 
           <p>
             Six starters + one Super Sub. Every
@@ -1033,3 +1033,4 @@ function PlayerParticipationTracker() {
 }
 
 export default PlayerParticipationTracker;
+

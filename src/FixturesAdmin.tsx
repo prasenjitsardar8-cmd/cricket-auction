@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import "./Fixtures.css";
+import PlayerParticipationTracker from "./PlayerParticipationTracker";
 
 import { supabase } from "./supabase";
 
@@ -18,8 +19,10 @@ import {
   getNextFixture,
   loadFixtures,
   resetFixture,
+  resetEntireSchedule,
   setCurrentFixture,
   updateFixtureScore,
+  undoLastCompletedMatch,
   type FixtureMatch,
   type FixtureResultInput,
   type FixtureResultType,
@@ -300,6 +303,69 @@ function FixturesAdmin() {
     );
   };
 
+
+  const handleUndoLastCompleted =
+    async () => {
+      const confirmed =
+        window.confirm(
+          "UNDO LAST COMPLETED MATCH?\n\nThe most recently completed match will be reopened as CURRENT. Its score and result text will be kept, but it will stop counting in the points table until you complete it again."
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      await runAction(
+        async () => {
+          await undoLastCompletedMatch();
+        },
+        "Last completed match reopened."
+      );
+    };
+
+  const handleResetEntireSchedule =
+    async () => {
+      const firstConfirm =
+        window.confirm(
+          "RESET THE ENTIRE MATCH SCHEDULE?\n\nThis will reset ALL 15 matches to UPCOMING and permanently clear:\n\n• all scores\n• all results\n• points-table progress\n• current match state\n• all saved match line-ups\n• all player appearance counts\n\nPlayer roster and Present/Absent attendance will be kept.\n\nThis cannot be undone from the browser."
+        );
+
+      if (!firstConfirm) {
+        return;
+      }
+
+      const typed =
+        window.prompt(
+          'Type RESET SCHEDULE to confirm the full reset.'
+        );
+
+      if (typed !== "RESET SCHEDULE") {
+        setErrorMessage(
+          "Schedule reset cancelled. Confirmation text did not match."
+        );
+        return;
+      }
+
+      await runAction(
+        async () => {
+          await resetEntireSchedule();
+        },
+        "Entire match schedule reset."
+      );
+    };
+
+  const goToPlayerAssignment =
+    () => {
+      document
+        .getElementById(
+          "player-assignment-section"
+        )
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    };
+
   if (loading) {
     return (
       <div className="fixtures-loading">
@@ -327,6 +393,36 @@ function FixturesAdmin() {
         </div>
 
         <div className="fixtures-admin-header-actions">
+          <button
+            type="button"
+            className="player-assignment-jump"
+            onClick={goToPlayerAssignment}
+          >
+            PLAYER ASSIGNMENT
+          </button>
+
+          <button
+            type="button"
+            className="fixtures-undo-button"
+            disabled={saving || completedCount === 0}
+            onClick={() =>
+              void handleUndoLastCompleted()
+            }
+          >
+            ↶ UNDO LAST COMPLETED
+          </button>
+
+          <button
+            type="button"
+            className="fixtures-reset-all-button"
+            disabled={saving}
+            onClick={() =>
+              void handleResetEntireSchedule()
+            }
+          >
+            RESET ENTIRE SCHEDULE
+          </button>
+
           <a
             href="/fixtures/display"
             target="_blank"
@@ -817,8 +913,32 @@ function FixturesAdmin() {
           </table>
         </div>
       </section>
+
+      <section
+        id="player-assignment-section"
+        className="fixtures-player-assignment-section"
+      >
+        <div className="fixtures-player-assignment-banner">
+          <div>
+            <p className="fixtures-kicker">
+              PLAYER ASSIGNMENT
+            </p>
+            <h2>
+              Match Line-up & Rotation Control
+            </h2>
+            <p>
+              Mark attendance, assign the 6 starters and Super Sub for every match,
+              and track the mandatory 2-match participation rule.
+            </p>
+          </div>
+        </div>
+
+        <PlayerParticipationTracker />
+      </section>
     </div>
   );
 }
 
 export default FixturesAdmin;
+
+

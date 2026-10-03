@@ -239,6 +239,28 @@ export async function resetFixture(matchId: number) {
   }
 }
 
+export async function undoLastCompletedMatch() {
+  const { data, error } = await supabase.rpc(
+    "undo_last_completed_match"
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function resetEntireSchedule() {
+  const { error } = await supabase.rpc(
+    "reset_entire_schedule"
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function advanceToNextFixture(fixtures: FixtureMatch[]) {
   const currentIndex = fixtures.findIndex(
     (fixture) =>
@@ -458,3 +480,4 @@ export function formatScore(
 
   return `${runs}${wicketsText}${oversText}`;
 }
+
