@@ -76,6 +76,147 @@ type FixtureRow = {
   result_text: string | null;
   updated_at: string | null;
 };
+const APPROVED_FIXTURE_SCHEDULE: Record<
+  number,
+  {
+    matchNumber: number | null;
+    slotType: FixtureSlotType;
+    startTime: string;
+    endTime: string;
+    team1: string | null;
+    team2: string | null;
+  }
+> = {
+  1: {
+    matchNumber: 1,
+    slotType: "MATCH",
+    startTime: "9:00 AM",
+    endTime: "9:45 AM",
+    team1: "Super Kings",
+    team2: "MI",
+  },
+  2: {
+    matchNumber: 2,
+    slotType: "MATCH",
+    startTime: "9:45 AM",
+    endTime: "10:30 AM",
+    team1: "Royal Challengers",
+    team2: "Capitals",
+  },
+  3: {
+    matchNumber: 3,
+    slotType: "MATCH",
+    startTime: "10:30 AM",
+    endTime: "11:15 AM",
+    team1: "Knight Riders",
+    team2: "Royals",
+  },
+  4: {
+    matchNumber: 4,
+    slotType: "MATCH",
+    startTime: "11:15 AM",
+    endTime: "12:00 PM",
+    team1: "MI",
+    team2: "Capitals",
+  },
+  5: {
+    matchNumber: 5,
+    slotType: "MATCH",
+    startTime: "12:00 PM",
+    endTime: "12:45 PM",
+    team1: "Royal Challengers",
+    team2: "Super Kings",
+  },
+  6: {
+    matchNumber: null,
+    slotType: "BREAK",
+    startTime: "12:45 PM",
+    endTime: "1:15 PM",
+    team1: "Lunch Break",
+    team2: null,
+  },
+  7: {
+    matchNumber: 6,
+    slotType: "MATCH",
+    startTime: "1:15 PM",
+    endTime: "2:00 PM",
+    team1: "Capitals",
+    team2: "Royals",
+  },
+  8: {
+    matchNumber: 7,
+    slotType: "MATCH",
+    startTime: "2:00 PM",
+    endTime: "2:45 PM",
+    team1: "Knight Riders",
+    team2: "Super Kings",
+  },
+  9: {
+    matchNumber: 8,
+    slotType: "MATCH",
+    startTime: "2:45 PM",
+    endTime: "3:30 PM",
+    team1: "Royal Challengers",
+    team2: "MI",
+  },
+  10: {
+    matchNumber: 9,
+    slotType: "MATCH",
+    startTime: "3:30 PM",
+    endTime: "4:15 PM",
+    team1: "Capitals",
+    team2: "Knight Riders",
+  },
+  11: {
+    matchNumber: 10,
+    slotType: "MATCH",
+    startTime: "4:15 PM",
+    endTime: "5:00 PM",
+    team1: "Royals",
+    team2: "Royal Challengers",
+  },
+  12: {
+    matchNumber: 11,
+    slotType: "MATCH",
+    startTime: "5:00 PM",
+    endTime: "5:45 PM",
+    team1: "Super Kings",
+    team2: "Capitals",
+  },
+  13: {
+    matchNumber: 12,
+    slotType: "MATCH",
+    startTime: "5:45 PM",
+    endTime: "6:30 PM",
+    team1: "MI",
+    team2: "Royals",
+  },
+  14: {
+    matchNumber: 13,
+    slotType: "MATCH",
+    startTime: "6:30 PM",
+    endTime: "7:15 PM",
+    team1: "Knight Riders",
+    team2: "Royal Challengers",
+  },
+  15: {
+    matchNumber: 14,
+    slotType: "MATCH",
+    startTime: "7:15 PM",
+    endTime: "8:00 PM",
+    team1: "Super Kings",
+    team2: "Royals",
+  },
+  16: {
+    matchNumber: 15,
+    slotType: "MATCH",
+    startTime: "8:00 PM",
+    endTime: "8:45 PM",
+    team1: "MI",
+    team2: "Knight Riders",
+  },
+};
+
 
 function numberOrNull(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
@@ -87,15 +228,39 @@ function numberOrNull(value: unknown): number | null {
 }
 
 function mapFixture(row: FixtureRow): FixtureMatch {
+  const slotOrder =
+    Number(row.slot_order);
+
+  const approved =
+    APPROVED_FIXTURE_SCHEDULE[
+      slotOrder
+    ];
+
   return {
     id: Number(row.id),
-    matchNumber: numberOrNull(row.match_number),
-    slotOrder: Number(row.slot_order),
-    slotType: row.slot_type === "BREAK" ? "BREAK" : "MATCH",
-    startTime: row.start_time,
-    endTime: row.end_time,
-    team1: row.team1,
-    team2: row.team2,
+    matchNumber:
+      approved?.matchNumber ??
+      numberOrNull(row.match_number),
+    slotOrder,
+    slotType:
+      approved?.slotType ??
+      (
+        row.slot_type === "BREAK"
+          ? "BREAK"
+          : "MATCH"
+      ),
+    startTime:
+      approved?.startTime ??
+      row.start_time,
+    endTime:
+      approved?.endTime ??
+      row.end_time,
+    team1:
+      approved?.team1 ??
+      row.team1,
+    team2:
+      approved?.team2 ??
+      row.team2,
     status:
       row.status === "CURRENT"
         ? "CURRENT"
@@ -105,13 +270,15 @@ function mapFixture(row: FixtureRow): FixtureMatch {
     team1Runs: numberOrNull(row.team1_runs),
     team1Wickets: numberOrNull(row.team1_wickets),
     team1Overs:
-      row.team1_overs === null || row.team1_overs === undefined
+      row.team1_overs === null ||
+      row.team1_overs === undefined
         ? null
         : String(row.team1_overs),
     team2Runs: numberOrNull(row.team2_runs),
     team2Wickets: numberOrNull(row.team2_wickets),
     team2Overs:
-      row.team2_overs === null || row.team2_overs === undefined
+      row.team2_overs === null ||
+      row.team2_overs === undefined
         ? null
         : String(row.team2_overs),
     resultType:
